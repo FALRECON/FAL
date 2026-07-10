@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FAL Claim — Mini App</title>
+  <style>
+    :root{
+      --bg:#070707;
+      --panel:#141414;
+      --muted:#9aa0a6;
+      --accent:#9b8b5a;
+      --accent-2:#7f6f44;
+      --glass: rgba(255,255,255,0.03);
+      --radius:14px;
+      --button-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    }
+
+    html,body{ height:100%; margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:
+      radial-gradient(1200px 600px at 10% 10%, rgba(155,139,90,0.03), transparent 8%),
+      radial-gradient(800px 400px at 90% 90%, rgba(127,111,68,0.02), transparent 6%),
+      var(--bg); color:var(--muted); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+
+    .wrap{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:32px; }
+
+    .card{
+      width:100%; max-width:720px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+      border-radius:calc(var(--radius) + 4px); padding:32px; box-shadow: 0 6px 30px rgba(0,0,0,0.6);
+      border:1px solid rgba(255,255,255,0.03); display:flex; gap:20px; color:var(--muted);
+    }
+
+    .left, .right{ flex:1; min-width:260px; display:flex; flex-direction:column; gap:14px; align-items:center; }
+    .right{ align-items:stretch; }
+
+    .logo{ width:200px; height:auto; object-fit:contain; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.7)); border-radius:12px; padding:6px; background:transparent; }
+
+    h1{ margin:0; font-size:18px; color:#dfe6e9; letter-spacing:0.6px; }
+    p.lead{ margin:0; color:var(--muted); font-size:13px; text-align:center; opacity:0.95; }
+
+    .balance{
+      width:100%;
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+      border-radius:12px; padding:14px 16px; text-align:center; box-sizing:border-box;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    .balance .label{ font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .balance .value{ font-size:28px; color:#f5f7f8; font-weight:700; letter-spacing:0.6px; }
+
+    .btn-claim{
+      appearance:none; -webkit-appearance:none; border:0; outline:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+      padding:16px 42px; font-size:18px; font-weight:700; color:#0b0b0b; background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      border-radius:12px; box-shadow: var(--button-shadow); transition: transform .14s ease, box-shadow .14s ease, opacity .12s ease; user-select:none;
+    }
+    .btn-claim:hover{ transform: translateY(-3px); }
+    .btn-claim[disabled]{ opacity:0.6; cursor:default; transform:none; box-shadow:none; }
+
+    .small{ font-size:12px; color: #9aa0a6; opacity:0.9; text-align:center; }
+
+    .panel{ background:var(--panel); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.03); }
+
+    .withdraw h3{ margin:0 0 6px 0; color:#e7ecef; }
+    .row{ display:flex; gap:8px; align-items:center; }
+    .input, .select{
+      background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); padding:10px 12px; border-radius:8px; flex:1;
+    }
+    .muted-small{ font-size:12px; color:#9aa0a6; }
+
+    .connect-btn{
+      padding:10px 12px; border-radius:8px; background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); cursor:pointer;
+    }
+
+    .contract{
+      display:flex; gap:8px; align-items:center; justify-content:space-between; width:100%;
+    }
+    .contract .addr{ font-family:monospace; font-size:13px; color:#dfe6e9; word-break:break-all; }
+
+    .ad{
+      width:100%; padding:10px 12px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.006), rgba(255,255,255,0.003)); border:1px solid rgba(255,255,255,0.02);
+      display:flex; align-items:center; justify-content:center; color:var(--muted); font-weight:600; font-size:13px;
+    }
+
+    .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:28px; background:var(--panel); border-radius:10px; padding:10px 16px; color:#dfe6e9;
+      border:1px solid rgba(255,255,255,0.04); box-shadow: 0 6px 20px rgba(0,0,0,0.6); display:none; font-size:14px;
+    }
+
+    .link { color:var(--muted); text-decoration:none; font-size:13px; }
+    .desc{ font-size:13px; color:#cfd6d8; }
+
+    @media (max-width:880px){
+      .card{ flex-direction:column; align-items:center; padding:20px; }
+      .left,.right{ width:100%; align-items:center; }
+      .right{ align-items:stretch; }
+      .logo{ width:170px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <main class="card" role="main" aria-labelledby="title">
+      <section class="left" aria-label="branding">
+        <img class="logo" src="logo.png" alt="FAL Tactical Recon logo" />
+        <h1 id="title">FAL Tactical Recon</h1>
+        <p class="lead">Claim your launch airdrop. One-time claim per wallet (demo).</p>
+
+        <div class="panel balance" aria-live="polite">
+          <div class="label">Balance</div>
+          <div class="value" id="falBalance">— $FAL</div>
+          <div style="margin-top:8px" class="muted-small">TON balance: <span id="tonBalance">— TON</span></div>
+        </div>
+
+        <div style="height:8px"></div>
+
+        <button id="claimBtn" class="btn-claim" aria-label="Claim your 100 dollar FAL tokens">claim your 100$FAL</button>
+        <p class="small">This is a demo UI. Connect the backend or Telegram WebApp to complete the claim.</p>
+
+        <div style="width:100%; margin-top:12px" class="ad">AdsGram — Adsa</div>
+      </section>
+
+      <section class="right" aria-label="withdrawal">
+        <div class="panel withdraw">
+          <h3>Withdraw tokens</h3>
+          <p class="desc">Auto-withdrawal: fee 0.1 TON • minimum 1000 $FAL</p>
+
+          <div style="height:8px"></div>
+
+          <div class="contract">
+            <div style="flex:1">
+              <div class="muted-small">Token contract</div>
+              <div class="addr" id="tokenAddr">EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; margin-left:10px;">
+              <button id="copyAddr" class="connect-btn" title="Copy contract address">Copy</button>
+              <button id="showInfo" class="connect-btn" title="Token info">Info</button>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <label class="muted-small">Amount to withdraw ($FAL)</label>
+          <div class="row" style="margin-bottom:8px;">
+            <input id="withdrawAmount" type="number" min="0" step="1" class="input" placeholder="e.g. 1000" />
+            <button id="maxBtn" class="connect-btn" title="Use full balance">MAX</button>
+          </div>
+
+          <div class="row" style="margin-bottom:8px;">
+            <button id="connectWallet" class="connect-btn">Connect Wallet</button>
+            <button id="withdrawBtn" class="connect-btn">Withdraw</button>
+          </div>
+
+          <div class="muted-small">Note: Withdrawal requires paying 0.1 TON fee. The app will attempt auto-withdrawal — this demo simulates the flow. Replace with your TON/backend logic.</div>
+
+          <div style="height:10px"></div>
+          <div class="muted-small">Price & listing</div>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <input id="price" class="input" placeholder="deDust price placeholder" disabled />
+            <button id="fetchPrice" class="connect-btn" disabled title="Hook your price API here">Fetch</button>
+          </div>
+
+          <div style="height:12px"></div>
+          <div>
+            <div class="muted-small">Project</div>
+            <div style="margin-top:6px; font-size:13px; color:#cfd6d8;">
+              $FAL is more than a token—it's a mission. Inspired by military precision, discipline, and unity, $FAL is building an army of loyal holders committed to long-term growth. No retreat, no surrender—only strategy, resilience, and victory
+            </div>
+
+            <div style="height:12px"></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <a class="link" href="https://x.com/FALTACTICAl" target="_blank" rel="noopener">Join us on X</a>
+              <a class="link" href="https://t.me/FALTACTICAL_RECON" target="_blank" rel="noopener">Telegram group</a>
+              <a class="link" href="https://t.me/FAL_tacticalrecon" target="_blank" rel="noopener">Telegram channel</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">You claimed 100 $FAL — check your wallet!</div>
+
+  <script>
+    (function(){
+      // Demo app state - replace with real wallet integration & server calls.
+      let state = {
+        connected: false,
+        falBalance: 1500,    // demo initial $FAL balance
+        hasClaimed: false,   // demo claim control
+        tonBalance: 0.5      // demo TON balance for fee check
+      };
+
+      const falEl = document.getElementById('falBalance');
+      const tonEl = document.getElementById('tonBalance');
+      const claimBtn = document.getElementById('claimBtn');
+      const toast = document.getElementById('toast');
+      const connectBtn = document.getElementById('connectWallet');
+      const withdrawBtn = document.getElementById('withdrawBtn');
+      const amountInput = document.getElementById('withdrawAmount');
+      const maxBtn = document.getElementById('maxBtn');
+      const copyAddr = document.getElementById('copyAddr');
+      const fetchPrice = document.getElementById('fetchPrice');
+      const priceInput = document.getElementById('price');
+      const showInfo = document.getElementById('showInfo');
+
+      const MIN_WITHDRAW = 1000;
+      const WITHDRAW_FEE_TON = 0.1;
+      const TOKEN_ADDR = 'EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds';
+
+      function render(){
+        falEl.textContent = `${state.falBalance.toLocaleString()} $FAL`;
+        tonEl.textContent = `${state.tonBalance} TON`;
+        connectBtn.textContent = state.connected ? 'Wallet: connected' : 'Connect Wallet';
+        connectBtn.style.borderColor = state.connected ? 'rgba(155,139,90,0.9)' : '';
+      }
+
+      function showToast(msg, ms = 3500){
+        toast.textContent = msg;
+        toast.style.display = 'block';
+        setTimeout(()=> toast.style.display = 'none', ms);
+      }
+
+      // CLAIM: adds 100 $FAL (demo). Replace with server/telegram logic.
+      claimBtn.addEventListener('click', async ()=>{
+        if (state.hasClaimed){
+          showToast('You already claimed (demo).');
+          return;
+        }
+        claimBtn.disabled = true;
+        claimBtn.textContent = 'processing...';
+
+        // If inside Telegram WebApp, you might call Telegram.WebApp.sendData(...) here.
+        if (window.Telegram && Telegram.WebApp){
+          try {
+            // telegram integration example (uncomment when ready):
+            // Telegram.WebApp.sendData(JSON.stringify({ action:'claim', token: 'FAL' }));
+            showToast('Telegram WebApp: claim sent to bot (demo).');
+            state.falBalance += 100;
+            state.hasClaimed = true;
+            claimBtn.textContent = 'claimed';
+            render();
+            return;
+          } catch(e){
+            console.warn('Telegram integration error', e);
+          }
+        }
+
+        // Demo fallback: simulate claim success
+        await new Promise(r => setTimeout(r, 1000));
+        state.falBalance += 100;
+        state.hasClaimed = true;
+        claimBtn.textContent = 'claimed';
+        showToast('Success! +100 $FAL added (demo).');
+        render();
+      });
+
+      // CONNECT WALLET: demo toggle. Replace with TonConnect/Tonkeeper flow.
+      connectBtn.addEventListener('click', async ()=>{
+        if (state.connected){
+          // Disconnect (demo)
+          state.connected = false;
+          showToast('Wallet disconnected (demo).');
+        } else {
+          // Connect (demo) - replace with TonConnect/Ton+ chain connect flow
+          // Example hook: await tonConnect.requestPermissions()
+          state.connected = true;
+          // In real use: set real TON balance and user address
+          state.tonBalance = 0.5; // replace by reading wallet
+          showToast('Wallet connected (demo).');
+        }
+        render();
+      });
+
+      // WITHDRAW logic
+      withdrawBtn.addEventListener('click', async ()=>{
+        const amount = Number(amountInput.value || 0);
+        if (!state.connected){
+          showToast('Connect wallet first.');
+          return;
+        }
+        if (!amount || amount <= 0){
+          showToast('Enter a valid amount.');
+          return;
+        }
+        if (amount < MIN_WITHDRAW){
+          showToast(`Minimum withdrawal is ${MIN_WITHDRAW} $FAL.`);
+          return;
+        }
+        if (amount > state.falBalance){
+          showToast('Insufficient $FAL balance.');
+          return;
+        }
+        if (state.tonBalance < WITHDRAW_FEE_TON){
+          showToast(`Insufficient TON for fee (requires ${WITHDRAW_FEE_TON} TON).`);
+          return;
+        }
+
+        withdrawBtn.disabled = true;
+        withdrawBtn.textContent = 'withdrawing...';
+
+        // Here: call your backend or TON auto-withdrawal routine.
+        // Example steps you might implement server-side:
+        // 1. Create withdrawal request to your backend (authenticate user)
+        // 2. Server checks balances, locks tokens, pays TON fee, sends tokens to user's address
+        // 3. Server returns success/failure
+        // For demo, we simulate an async withdrawal and update demo balances.
+
+        try {
+          await new Promise(r => setTimeout(r, 1400));
+          // Simulate fee deduction & token send
+          state.falBalance = Math.max(0, state.falBalance - amount);
+          state.tonBalance = Math.max(0, (state.tonBalance - WITHDRAW_FEE_TON).toFixed(6));
+          showToast(`Withdrawn ${amount.toLocaleString()} $FAL (demo). Fee ${WITHDRAW_FEE_TON} TON paid.`);
+          amountInput.value = '';
+          render();
+        } catch(e){
+          console.error(e);
+          showToast('Withdrawal failed (demo).');
+        } finally {
+          withdrawBtn.disabled = false;
+          withdrawBtn.textContent = 'Withdraw';
+        }
+      });
+
+      maxBtn.addEventListener('click', ()=>{
+        amountInput.value = state.falBalance;
+      });
+
+      // Copy contract address
+      copyAddr.addEventListener('click', async ()=>{
+        try {
+          await navigator.clipboard.writeText(TOKEN_ADDR);
+          showToast('Contract address copied.');
+        } catch(e){
+          showToast('Copy failed — select and copy manually.');
+        }
+      });
+
+      showInfo.addEventListener('click', ()=>{
+        // Show a minimal info dialog (demo)
+        alert('Token: $FAL\\nContract: ' + TOKEN_ADDR + '\\nMin withdraw: ' + MIN_WITHDRAW + ' $FAL\\nFee: ' + WITHDRAW_FEE_TON + ' TON');
+      });
+
+      // Price fetch placeholder - leave for your deDust implementation
+      fetchPrice.addEventListener('click', async ()=>{
+        showToast('Price fetch placeholder — hook deDust API here.');
+      });
+
+      // Initialize UI
+      render();
+
+      // Accessibility: allow Enter on inputs for withdraw
+      amountInput.addEventListener('keyup', (e)=>{
+        if (e.key === 'Enter') withdrawBtn.click();
+      });
+
+    })();
+  </script>
+</body>
+</html>
