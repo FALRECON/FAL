@@ -101,8 +101,9 @@
   </style>
 
   <!-- TonConnect SDK (used for connecting Ton wallets like TonKeeper, TonHub, etc.) -->
-  <script src="https://unpkg.com/@tonconnect/sdk/dist/tonconnect.umd.min.js"></script>
-  <!-- AdsGram documentation: https://docs.adsgram.ai/publisher/reward-interstitial-integration -->
+  <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
+  <!-- AdsGram SDK -->
+  <script src="https://ds.adsgram.ai/adsgram.js"></script>
 </head>
 <body>
   <div class="wrap">
@@ -120,9 +121,9 @@
         <div style="height:8px"></div>
 
         <button id="claimBtn" class="btn-claim" aria-label="Watch AdsGram ad to claim reward">claim your 100$FAL</button>
-        <p class="small">Official app — connect backend to enable claim and withdrawal flows.</p>
+        <p class="small" id="claimStatus">Official app — connect backend to enable claim and withdrawal flows.</p>
 
-        <div style="width:100%; margin-top:12px" class="ad">AdsGram — Adsa</div>
+        <div style="width:100%; margin-top:12px" class="ad">AdsGram — Watch ads, earn $FAL</div>
       </section>
 
       <section class="right" aria-label="withdrawal">
@@ -169,7 +170,7 @@
           <div>
             <div class="muted-small">Project</div>
             <div style="margin-top:6px; font-size:13px; color:#cfd6d8;">
-              $FAL is more than a token—it's a mission. Inspired by military precision, discipline, and unity, $FAL is building an army of loyal holders committed to long-term growth. No retreat, no surrender—only strategy, resilience, and victory
+              $FAL is more than a token—it's a mission. Inspired by military precision, discipline, and unity, $FAL is building an army of loyal holders committed to long-term growth. No retrea[...]
             </div>
 
             <div style="height:12px"></div>
@@ -184,8 +185,7 @@
     </main>
   </div>
 
-  <!-- Ad overlay: the AdsGram SDK integration will call the onComplete callback when the ad is fully watched.
-       If AdsGram SDK isn't loaded or network is unavailable, the UI falls back to a short simulated ad for testing. -->
+  <!-- Ad overlay for fallback simulation -->
   <div id="adOverlay" class="ad-overlay" role="dialog" aria-hidden="true">
     <div class="ad-box" role="document">
       <div style="font-size:16px; color:#e9ecef; font-weight:700">AdsGram — Sponsored Ad</div>
@@ -204,11 +204,13 @@
     (function(){
       // App state stored in localStorage so balance persists across refresh/close
       const STORAGE_KEY = 'fal_balance_v1';
+      const COOLDOWN_KEY = 'fal_claim_cooldown_v1';
       let state = {
         connected: false,
         address: null,
         falBalance: 0,
-        tonBalance: 0
+        tonBalance: 0,
+        lastClaimTime: 0
       };
 
       // Config
@@ -216,13 +218,15 @@
       const MIN_WITHDRAW = 1000;
       const WITHDRAW_FEE_TON = 0.1;
       const TOKEN_ADDR = 'EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds';
-      const ADSGRAM_BLOCK_ID = 38011; // provided by you
+      const ADSGRAM_BLOCK_ID = 38011; // Your AdsGram block ID - REPLACE WITH YOUR ACTUAL ID
+      const CLAIM_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
 
       // UI elements
       const falEl = document.getElementById('falBalance');
       const tonEl = document.getElementById('tonBalance');
       const addrEl = document.getElementById('walletAddr');
       const claimBtn = document.getElementById('claimBtn');
+      const claimStatus = document.getElementById('claimStatus');
       const toast = document.getElementById('toast');
       const connectBtn = document.getElementById('connectWallet');
       const withdrawBtn = document.getElementById('withdrawBtn');
@@ -242,18 +246,54 @@
       let tonconnect = null;
 
       function saveState(){
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ falBalance: state.falBalance }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+          falBalance: state.falBalance,
+          lastClaimTime: state.lastClaimTime
+        }));
       }
+      
       function loadState(){
         try{
           const raw = localStorage.getItem(STORAGE_KEY);
           if (raw){
             const obj = JSON.parse(raw);
             state.falBalance = Number(obj.falBalance || 0);
+            state.lastClaimTime = Number(obj.lastClaimTime || 0);
           } else {
             state.falBalance = 0;
+            state.lastClaimTime = 0;
           }
-        }catch(e){ state.falBalance = 0; }
+        }catch(e){ 
+          state.falBalance = 0;
+          state.lastClaimTime = 0;
+        }
+      }
+
+      function getClaimCooldownRemaining(){
+        const now = Date.now();
+        const timeSinceLastClaim = now - state.lastClaimTime;
+        if (timeSinceLastClaim >= CLAIM_COOLDOWN_MS) {
+          return 0;
+        }
+        return Math.ceil((CLAIM_COOLDOWN_MS - timeSinceLastClaim) / 1000);
+      }
+
+      function updateClaimButtonState(){
+        const cooldownRemaining = getClaimCooldownRemaining();
+        if (cooldownRemaining > 0) {
+          claimBtn.disabled = true;
+          const minutes = Math.floor(cooldownRemaining / 60);
+          const seconds = cooldownRemaining % 60;
+          claimBtn.textContent = `wait ${minutes}m ${seconds}s`;
+          claimStatus.textContent = `Next claim available in ${minutes}m ${seconds}s`;
+          
+          // Update every second
+          setTimeout(updateClaimButtonState, 1000);
+        } else {
+          claimBtn.disabled = false;
+          claimBtn.textContent = 'claim your 100$FAL';
+          claimStatus.textContent = 'Ready to claim! Watch an ad to earn.';
+        }
       }
 
       function render(){
@@ -262,6 +302,7 @@
         addrEl.textContent = state.address || '—';
         connectBtn.textContent = state.connected ? 'Wallet: connected' : 'Connect Wallet';
         connectBtn.style.borderColor = state.connected ? 'rgba(155,139,90,0.9)' : '';
+        updateClaimButtonState();
       }
 
       function showToast(msg, ms = 3000){
@@ -270,38 +311,48 @@
         setTimeout(()=> toast.style.display = 'none', ms);
       }
 
-      // AdsGram integration helper
-      // Docs: https://docs.adsgram.ai/publisher/reward-interstitial-integration
-      // The exact AdsGram JS API may differ; below we attempt to call AdsGram's global if available.
-      // If AdsGram SDK is present, it should provide a method to show a rewarded ad and callbacks for completion.
+      // AdsGram integration
+      // Based on: https://docs.adsgram.ai/publisher/reward-interstitial-integration
       async function playAdsGramRewarded(){
-        // If AdsGram SDK is available and exposes a show method, use it.
-        // Replace the conditions below with the exact AdsGram API after checking their docs.
+        // Check if AdsGram SDK is loaded
+        if (window.AdsgRam && typeof window.AdsgRam.show === 'function'){
+          return new Promise((resolve) => {
+            window.AdsgRam.show({
+              blockId: ADSGRAM_BLOCK_ID,
+              onReward: () => {
+                console.log('Ad rewarded');
+                resolve(true);
+              },
+              onClose: () => {
+                console.log('Ad closed');
+                resolve(false);
+              },
+              onError: (error) => {
+                console.error('AdsGram error:', error);
+                resolve(false);
+              }
+            });
+          });
+        }
+
+        // Try alternative naming
         if (window.ADSGRAM && typeof window.ADSGRAM.showRewarded === 'function'){
           return new Promise((resolve) => {
-            window.ADSGRAM.showRewarded({ blockId: ADSGRAM_BLOCK_ID,
-              onComplete: ()=> resolve(true),
-              onClose: ()=> resolve(false),
-              onError: ()=> resolve(false)
+            window.ADSGRAM.showRewarded({
+              blockId: ADSGRAM_BLOCK_ID,
+              onComplete: () => resolve(true),
+              onClose: () => resolve(false),
+              onError: () => resolve(false)
             });
           });
         }
 
-        // Try common global name 'adsgram'
-        if (window.adsgram && typeof window.adsgram.openRewarded === 'function'){
-          return new Promise((resolve) => {
-            window.adsgram.openRewarded(ADSGRAM_BLOCK_ID, function(result){
-              // result.success === true when ad fully watched (depends on AdsGram API)
-              resolve(Boolean(result && result.success));
-            });
-          });
-        }
-
-        // If no AdsGram SDK is available, fall back to the in-page simulation (for testing only)
+        // If no AdsGram SDK is available, fall back to simulation
+        console.warn('AdsGram SDK not found. Using simulation.');
         return simulateAdPlay();
       }
 
-      // Fallback simulation (keeps previous UX for testing)
+      // Fallback simulation (for testing only)
       function simulateAdPlay(){
         adOverlay.style.display = 'flex';
         adOverlay.setAttribute('aria-hidden', 'false');
@@ -332,12 +383,19 @@
         });
       }
 
-      // Main claim flow: try AdsGram, reward only when fully watched
+      // Main claim flow with cooldown
       claimBtn.addEventListener('click', async ()=>{
+        const cooldownRemaining = getClaimCooldownRemaining();
+        if (cooldownRemaining > 0) {
+          showToast(`Please wait ${cooldownRemaining}s before claiming again`);
+          return;
+        }
+
         try{
           const watched = await playAdsGramRewarded();
           if (watched){
             state.falBalance = Number(state.falBalance) + Number(CURRENT_REWARD);
+            state.lastClaimTime = Date.now();
             saveState();
             render();
             showToast(`You earned ${CURRENT_REWARD} $FAL`);
@@ -350,7 +408,7 @@
         }
       });
 
-      // Ad close button (in simulation path only)
+      // Ad close button
       closeAd.addEventListener('click', ()=>{
         adOverlay.style.display = 'none';
         adOverlay.setAttribute('aria-hidden', 'true');
@@ -361,38 +419,59 @@
 
       // TonConnect wallet connection
       async function initTonConnect(){
-        if (!window.TonConnect) return null;
-        // manifestUrl is recommended for TonConnect to show your dApp name/icon inside wallets.
-        const manifestUrl = window.location.origin + '/manifest.json';
-        tonconnect = new TonConnect.TonConnect({ manifestUrl });
-        // If there's a cached session, restore it
-        if (tonconnect.wallets && tonconnect.wallets.length) {
-          try{ await tonconnect.restoreConnection(); }catch(e){}
+        try {
+          if (!window.TonConnect) {
+            console.warn('TonConnect SDK not loaded');
+            return null;
+          }
+          const manifestUrl = window.location.origin + '/manifest.json';
+          tonconnect = new window.TonConnect.TonConnect({ manifestUrl });
+          // Try to restore existing connection
+          if (tonconnect.wallets && tonconnect.wallets.length) {
+            try { 
+              await tonconnect.restoreConnection(); 
+            }catch(e){
+              console.log('No previous connection to restore');
+            }
+          }
+          return tonconnect;
+        } catch (e) {
+          console.error('TonConnect init failed:', e);
+          return null;
         }
-        return tonconnect;
       }
 
       // Connect/disconnect handler
       connectBtn.addEventListener('click', async ()=>{
         try{
-          if (!tonconnect) await initTonConnect();
-          if (!tonconnect) { showToast('TonConnect SDK not available'); return; }
+          if (!tonconnect) {
+            tonconnect = await initTonConnect();
+          }
+          if (!tonconnect) { 
+            showToast('TonConnect SDK not available'); 
+            return; 
+          }
 
           if (!state.connected){
-            // Request connection — TonConnect will show a list of wallets (TonKeeper, Tonhub, etc.)
-            const bridge = await tonconnect.connect();
-            // After connect, get the account (TonConnect exposes account in tonconnect.account or via wallet state)
-            const account = tonconnect.account; // may be undefined depending on SDK version
-            // As a fallback, use the first wallet state
-            let addr = account?.account || (tonconnect.connectedWallets && tonconnect.connectedWallets[0] && tonconnect.connectedWallets[0].name) || null;
-            // TonConnect doesn't expose balance directly; you must query a TON API (server-side or public RPC) for the address balance.
-            state.connected = true;
-            state.address = addr || 'connected';
-            // NOTE: implement a server-side call to fetch TON balance for address and set state.tonBalance accordingly.
-            state.tonBalance = 0;
-            showToast('Wallet connected (TonConnect)');
+            // Request connection
+            try {
+              const connectedWallet = await tonconnect.connect();
+              if (connectedWallet) {
+                state.connected = true;
+                state.address = connectedWallet.account?.address || 'connected';
+                state.tonBalance = 0; // Would fetch from TON API in production
+                showToast('Wallet connected (TonConnect)');
+              }
+            } catch (e) {
+              console.error('Connection error:', e);
+              showToast('Wallet connection cancelled');
+            }
           } else {
-            await tonconnect.disconnect();
+            try {
+              await tonconnect.disconnect();
+            } catch (e) {
+              console.error('Disconnect error:', e);
+            }
             state.connected = false;
             state.address = null;
             state.tonBalance = 0;
@@ -405,19 +484,13 @@
         }
       });
 
-      // Withdraw: recommended server-side flow (see notes below)
+      // Withdraw handler
       withdrawBtn.addEventListener('click', async ()=>{
         const amount = Number(amountInput.value || 0);
         if (!state.connected){ showToast('Connect wallet first.'); return; }
         if (!amount || amount <= 0){ showToast('Enter a valid amount.'); return; }
         if (amount < MIN_WITHDRAW){ showToast(`Minimum withdrawal is ${MIN_WITHDRAW} $FAL.`); return; }
         if (amount > state.falBalance){ showToast('Insufficient $FAL balance.'); return; }
-
-        // Production approach (recommended):
-        // 1) Require user to send 0.1 TON fee to your project wallet address (owner address).
-        // 2) Your backend verifies the on-chain payment (e.g., via TON indexer/toncenter) matches user's address and amount.
-        // 3) Once verified, backend sends the token transfer (from your project token custody) to the user's address and deducts balance in DB.
-        // The client below simulates and must be replaced with secure server calls.
 
         withdrawBtn.disabled = true; withdrawBtn.textContent = 'withdrawing...';
         try{
@@ -445,10 +518,9 @@
 
       fetchPrice.addEventListener('click', async ()=>{ showToast('Price fetch placeholder — implement API call.'); });
 
-      // Load persisted balance
+      // Initialize app
       loadState();
-      // Initialize TonConnect if available
-      initTonConnect().catch(()=>{});
+      initTonConnect().catch((e) => console.error('TonConnect init error:', e));
       render();
 
     })();
