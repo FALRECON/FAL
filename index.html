@@ -33,8 +33,6 @@
     .left, .right{ flex:1; min-width:260px; display:flex; flex-direction:column; gap:14px; align-items:center; }
     .right{ align-items:stretch; }
 
-    .logo{ width:200px; height:auto; object-fit:contain; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.7)); border-radius:12px; padding:6px; background:transparent; }
-
     h1{ margin:0; font-size:18px; color:#dfe6e9; letter-spacing:0.6px; }
     p.lead{ margin:0; color:var(--muted); font-size:13px; text-align:center; opacity:0.95; }
 
@@ -80,6 +78,14 @@
       display:flex; align-items:center; justify-content:center; color:var(--muted); font-weight:600; font-size:13px;
     }
 
+    /* Ad overlay */
+    .ad-overlay{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); z-index:60; padding:24px;
+    }
+    .ad-box{ width:100%; max-width:720px; background:linear-gradient(180deg, #0e0e0e, #121212); border-radius:12px; padding:18px; text-align:center; }
+    .ad-progress{ height:8px; background:rgba(255,255,255,0.06); border-radius:8px; overflow:hidden; margin-top:12px; }
+    .ad-progress > i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width 0.2s linear; }
+
     .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:28px; background:var(--panel); border-radius:10px; padding:10px 16px; color:#dfe6e9;
       border:1px solid rgba(255,255,255,0.04); box-shadow: 0 6px 20px rgba(0,0,0,0.6); display:none; font-size:14px;
     }
@@ -91,7 +97,6 @@
       .card{ flex-direction:column; align-items:center; padding:20px; }
       .left,.right{ width:100%; align-items:center; }
       .right{ align-items:stretch; }
-      .logo{ width:170px; }
     }
   </style>
 </head>
@@ -99,20 +104,19 @@
   <div class="wrap">
     <main class="card" role="main" aria-labelledby="title">
       <section class="left" aria-label="branding">
-        <img class="logo" src="logo.png" alt="FAL Tactical Recon logo" />
         <h1 id="title">FAL Tactical Recon</h1>
-        <p class="lead">Claim your launch airdrop. One-time claim per wallet (demo).</p>
+        <p class="lead">Watch AdsGram ads to earn $FAL rewards.</p>
 
         <div class="panel balance" aria-live="polite">
           <div class="label">Balance</div>
-          <div class="value" id="falBalance">— $FAL</div>
+          <div class="value" id="falBalance">0 $FAL</div>
           <div style="margin-top:8px" class="muted-small">TON balance: <span id="tonBalance">— TON</span></div>
         </div>
 
         <div style="height:8px"></div>
 
-        <button id="claimBtn" class="btn-claim" aria-label="Claim your 100 dollar FAL tokens">claim your 100$FAL</button>
-        <p class="small">This is a demo UI. Connect the backend or Telegram WebApp to complete the claim.</p>
+        <button id="claimBtn" class="btn-claim" aria-label="Watch AdsGram ad to claim reward">claim your 100$FAL</button>
+        <p class="small">Official app — connect backend to enable claim and withdrawal flows.</p>
 
         <div style="width:100%; margin-top:12px" class="ad">AdsGram — Adsa</div>
       </section>
@@ -148,7 +152,7 @@
             <button id="withdrawBtn" class="connect-btn">Withdraw</button>
           </div>
 
-          <div class="muted-small">Note: Withdrawal requires paying 0.1 TON fee. The app will attempt auto-withdrawal — this demo simulates the flow. Replace with your TON/backend logic.</div>
+          <div class="muted-small">Note: Withdrawal requires paying 0.1 TON fee. The app will attempt auto-withdrawal — implement server-side withdrawal for production.</div>
 
           <div style="height:10px"></div>
           <div class="muted-small">Price & listing</div>
@@ -176,18 +180,36 @@
     </main>
   </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite">You claimed 100 $FAL — check your wallet!</div>
+  <!-- Ad overlay: simulates watching a rewarded AdsGram ad. Replace with real AdsGram SDK integration. -->
+  <div id="adOverlay" class="ad-overlay" role="dialog" aria-hidden="true">
+    <div class="ad-box" role="document">
+      <div style="font-size:16px; color:#e9ecef; font-weight:700">AdsGram — Sponsored Ad</div>
+      <div style="margin-top:8px; color:var(--muted);">Watch the full ad to earn your reward.</div>
+      <div class="ad-progress" aria-hidden="true"><i id="adProgressBar"></i></div>
+      <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
+        <button id="closeAd" class="connect-btn" disabled>Close</button>
+        <div id="adTimer" class="muted-small">0s</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">You earned 100 $FAL</div>
 
   <script>
     (function(){
-      // Demo app state - replace with real wallet integration & server calls.
+      // App state
       let state = {
         connected: false,
-        falBalance: 1500,    // demo initial $FAL balance
-        hasClaimed: false,   // demo claim control
-        tonBalance: 0.5      // demo TON balance for fee check
+        falBalance: 0,       // start at 0 $FAL
+        tonBalance: 0,       // TON balance unknown until wallet connects
       };
 
+      const CURRENT_REWARD = 100; // reward per full ad watch in $FAL
+      const MIN_WITHDRAW = 1000;
+      const WITHDRAW_FEE_TON = 0.1;
+      const TOKEN_ADDR = 'EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds';
+
+      // UI elements
       const falEl = document.getElementById('falBalance');
       const tonEl = document.getElementById('tonBalance');
       const claimBtn = document.getElementById('claimBtn');
@@ -201,156 +223,142 @@
       const priceInput = document.getElementById('price');
       const showInfo = document.getElementById('showInfo');
 
-      const MIN_WITHDRAW = 1000;
-      const WITHDRAW_FEE_TON = 0.1;
-      const TOKEN_ADDR = 'EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds';
+      const adOverlay = document.getElementById('adOverlay');
+      const adProgressBar = document.getElementById('adProgressBar');
+      const adTimer = document.getElementById('adTimer');
+      const closeAd = document.getElementById('closeAd');
 
       function render(){
         falEl.textContent = `${state.falBalance.toLocaleString()} $FAL`;
-        tonEl.textContent = `${state.tonBalance} TON`;
+        tonEl.textContent = state.tonBalance ? `${state.tonBalance} TON` : '— TON';
         connectBtn.textContent = state.connected ? 'Wallet: connected' : 'Connect Wallet';
         connectBtn.style.borderColor = state.connected ? 'rgba(155,139,90,0.9)' : '';
       }
 
-      function showToast(msg, ms = 3500){
+      function showToast(msg, ms = 3000){
         toast.textContent = msg;
         toast.style.display = 'block';
         setTimeout(()=> toast.style.display = 'none', ms);
       }
 
-      // CLAIM: adds 100 $FAL (demo). Replace with server/telegram logic.
-      claimBtn.addEventListener('click', async ()=>{
-        if (state.hasClaimed){
-          showToast('You already claimed (demo).');
-          return;
-        }
+      // AdsGram rewarded ad simulation
+      async function playRewardedAd(){
+        // Show overlay
+        adOverlay.style.display = 'flex';
+        adOverlay.setAttribute('aria-hidden', 'false');
         claimBtn.disabled = true;
-        claimBtn.textContent = 'processing...';
+        claimBtn.textContent = 'watching ad...';
 
-        // If inside Telegram WebApp, you might call Telegram.WebApp.sendData(...) here.
-        if (window.Telegram && Telegram.WebApp){
-          try {
-            // telegram integration example (uncomment when ready):
-            // Telegram.WebApp.sendData(JSON.stringify({ action:'claim', token: 'FAL' }));
-            showToast('Telegram WebApp: claim sent to bot (demo).');
-            state.falBalance += 100;
-            state.hasClaimed = true;
-            claimBtn.textContent = 'claimed';
+        // Simulate ad duration (in seconds)
+        const DURATION = 8; // seconds — adjust to match real ad length
+        let elapsed = 0;
+        adProgressBar.style.width = '0%';
+        adTimer.textContent = `${DURATION}s`;
+        closeAd.disabled = true;
+
+        return new Promise((resolve) => {
+          const interval = setInterval(()=>{
+            elapsed++;
+            const pct = Math.min(100, Math.round((elapsed / DURATION) * 100));
+            adProgressBar.style.width = pct + '%';
+            adTimer.textContent = `${Math.max(0, DURATION - elapsed)}s`;
+
+            if (elapsed >= DURATION){
+              clearInterval(interval);
+              // Ad fully watched -> reward
+              adOverlay.style.display = 'none';
+              adOverlay.setAttribute('aria-hidden', 'true');
+              claimBtn.disabled = false;
+              claimBtn.textContent = 'claim your 100$FAL';
+              resolve(true);
+            }
+          }, 1000);
+        });
+      }
+
+      // Button: watch ad to claim
+      claimBtn.addEventListener('click', async ()=>{
+        try{
+          // In production: open real AdsGram rewarded ad and await callback when fully watched.
+          const watched = await playRewardedAd();
+          if (watched){
+            // Reward user
+            state.falBalance = Number(state.falBalance) + Number(CURRENT_REWARD);
             render();
-            return;
-          } catch(e){
-            console.warn('Telegram integration error', e);
+            showToast(`You earned ${CURRENT_REWARD} $FAL`);
+            // Button remains available to watch again
           }
+        }catch(e){
+          console.error(e);
+          adOverlay.style.display = 'none';
+          claimBtn.disabled = false;
+          claimBtn.textContent = 'claim your 100$FAL';
+          showToast('Ad failed — try again');
         }
-
-        // Demo fallback: simulate claim success
-        await new Promise(r => setTimeout(r, 1000));
-        state.falBalance += 100;
-        state.hasClaimed = true;
-        claimBtn.textContent = 'claimed';
-        showToast('Success! +100 $FAL added (demo).');
-        render();
       });
 
-      // CONNECT WALLET: demo toggle. Replace with TonConnect/Tonkeeper flow.
+      // Close ad (disabled until ad completes) kept for UX completeness
+      closeAd.addEventListener('click', ()=>{
+        // If you want to allow skipping, resolve with false and do not reward
+        adOverlay.style.display = 'none';
+        adOverlay.setAttribute('aria-hidden', 'true');
+        claimBtn.disabled = false;
+        claimBtn.textContent = 'claim your 100$FAL';
+        showToast('Ad closed — no reward');
+      });
+
+      // CONNECT WALLET: placeholder (replace with TonConnect/Tonkeeper flow)
       connectBtn.addEventListener('click', async ()=>{
         if (state.connected){
-          // Disconnect (demo)
           state.connected = false;
-          showToast('Wallet disconnected (demo).');
+          state.tonBalance = 0;
+          showToast('Wallet disconnected');
         } else {
-          // Connect (demo) - replace with TonConnect/Ton+ chain connect flow
-          // Example hook: await tonConnect.requestPermissions()
           state.connected = true;
-          // In real use: set real TON balance and user address
-          state.tonBalance = 0.5; // replace by reading wallet
-          showToast('Wallet connected (demo).');
+          // In production: query wallet for TON balance and address
+          state.tonBalance = 0; // keep 0 until user funds TON for withdrawal fees
+          showToast('Wallet connected');
         }
         render();
       });
 
-      // WITHDRAW logic
+      // WITHDRAW logic (server integration required for production)
       withdrawBtn.addEventListener('click', async ()=>{
         const amount = Number(amountInput.value || 0);
-        if (!state.connected){
-          showToast('Connect wallet first.');
-          return;
-        }
-        if (!amount || amount <= 0){
-          showToast('Enter a valid amount.');
-          return;
-        }
-        if (amount < MIN_WITHDRAW){
-          showToast(`Minimum withdrawal is ${MIN_WITHDRAW} $FAL.`);
-          return;
-        }
-        if (amount > state.falBalance){
-          showToast('Insufficient $FAL balance.');
-          return;
-        }
-        if (state.tonBalance < WITHDRAW_FEE_TON){
-          showToast(`Insufficient TON for fee (requires ${WITHDRAW_FEE_TON} TON).`);
-          return;
-        }
+        if (!state.connected){ showToast('Connect wallet first.'); return; }
+        if (!amount || amount <= 0){ showToast('Enter a valid amount.'); return; }
+        if (amount < MIN_WITHDRAW){ showToast(`Minimum withdrawal is ${MIN_WITHDRAW} $FAL.`); return; }
+        if (amount > state.falBalance){ showToast('Insufficient $FAL balance.'); return; }
+        if (state.tonBalance < WITHDRAW_FEE_TON){ showToast(`Insufficient TON for fee (requires ${WITHDRAW_FEE_TON} TON).`); return; }
 
-        withdrawBtn.disabled = true;
-        withdrawBtn.textContent = 'withdrawing...';
-
-        // Here: call your backend or TON auto-withdrawal routine.
-        // Example steps you might implement server-side:
-        // 1. Create withdrawal request to your backend (authenticate user)
-        // 2. Server checks balances, locks tokens, pays TON fee, sends tokens to user's address
-        // 3. Server returns success/failure
-        // For demo, we simulate an async withdrawal and update demo balances.
-
-        try {
-          await new Promise(r => setTimeout(r, 1400));
-          // Simulate fee deduction & token send
+        withdrawBtn.disabled = true; withdrawBtn.textContent = 'withdrawing...';
+        try{
+          // Call your backend to perform the withdrawal and pay TON fee
+          await new Promise(r => setTimeout(r, 1200));
           state.falBalance = Math.max(0, state.falBalance - amount);
           state.tonBalance = Math.max(0, (state.tonBalance - WITHDRAW_FEE_TON).toFixed(6));
-          showToast(`Withdrawn ${amount.toLocaleString()} $FAL (demo). Fee ${WITHDRAW_FEE_TON} TON paid.`);
+          showToast(`Withdrawn ${amount.toLocaleString()} $FAL. Fee ${WITHDRAW_FEE_TON} TON paid.`);
           amountInput.value = '';
           render();
-        } catch(e){
-          console.error(e);
-          showToast('Withdrawal failed (demo).');
-        } finally {
-          withdrawBtn.disabled = false;
-          withdrawBtn.textContent = 'Withdraw';
-        }
+        }catch(e){ console.error(e); showToast('Withdrawal failed'); }
+        finally{ withdrawBtn.disabled = false; withdrawBtn.textContent = 'Withdraw'; }
       });
 
-      maxBtn.addEventListener('click', ()=>{
-        amountInput.value = state.falBalance;
-      });
+      maxBtn.addEventListener('click', ()=>{ amountInput.value = state.falBalance; });
 
-      // Copy contract address
       copyAddr.addEventListener('click', async ()=>{
-        try {
-          await navigator.clipboard.writeText(TOKEN_ADDR);
-          showToast('Contract address copied.');
-        } catch(e){
-          showToast('Copy failed — select and copy manually.');
-        }
+        try{ await navigator.clipboard.writeText(TOKEN_ADDR); showToast('Contract address copied.'); }
+        catch(e){ showToast('Copy failed — select and copy manually.'); }
       });
 
       showInfo.addEventListener('click', ()=>{
-        // Show a minimal info dialog (demo)
-        alert('Token: $FAL\\nContract: ' + TOKEN_ADDR + '\\nMin withdraw: ' + MIN_WITHDRAW + ' $FAL\\nFee: ' + WITHDRAW_FEE_TON + ' TON');
+        alert('Token: $FAL\nContract: ' + TOKEN_ADDR + '\nMin withdraw: ' + MIN_WITHDRAW + ' $FAL\nFee: ' + WITHDRAW_FEE_TON + ' TON');
       });
 
-      // Price fetch placeholder - leave for your deDust implementation
-      fetchPrice.addEventListener('click', async ()=>{
-        showToast('Price fetch placeholder — hook deDust API here.');
-      });
+      fetchPrice.addEventListener('click', async ()=>{ showToast('Price fetch placeholder — implement API call.'); });
 
-      // Initialize UI
+      // init
       render();
-
-      // Accessibility: allow Enter on inputs for withdraw
-      amountInput.addEventListener('keyup', (e)=>{
-        if (e.key === 'Enter') withdrawBtn.click();
-      });
 
     })();
   </script>
