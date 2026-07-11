@@ -49,6 +49,46 @@
       gap: 12px;
     }
 
+    .tabs {
+      width: 100%;
+      max-width: 540px;
+      display: flex;
+      gap: 8px;
+      background: rgba(255,255,255,0.01);
+      border-radius: 12px;
+      padding: 4px;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 12px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-user-select: none;
+      user-select: none;
+      font-family: inherit;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: #0b0b0b;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
     .card{
       width:100%; 
       max-width:540px; 
@@ -106,6 +146,34 @@
       color: var(--muted);
       margin-top: 8px;
       opacity: 0.7;
+    }
+
+    .dual-stat {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .stat-box {
+      background: rgba(155,139,90,0.08);
+      border: 1px solid rgba(155,139,90,0.2);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-box .label {
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0.8;
+    }
+
+    .stat-box .value {
+      font-size: 20px;
+      color: #f5f7f8;
+      font-weight: 700;
+      margin-top: 4px;
     }
 
     .btn-claim{
@@ -226,6 +294,109 @@
       border-radius: 6px;
     }
 
+    .referral-link-box {
+      background: linear-gradient(180deg, rgba(155,139,90,0.15), rgba(155,139,90,0.05));
+      border: 1px solid rgba(155,139,90,0.3);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .referral-link-box .label {
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+
+    .referral-link-display {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .referral-link-text {
+      flex: 1;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(155,139,90,0.2);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      color: #9b8b5a;
+      font-family: monospace;
+      word-break: break-all;
+      max-height: 60px;
+      overflow-y: auto;
+    }
+
+    .btn-copy {
+      padding: 8px 16px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .referral-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .ref-stat {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(155,139,90,0.2);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .ref-stat .label {
+      font-size: 10px;
+      color: var(--muted);
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .ref-stat .value {
+      font-size: 18px;
+      color: #f5f7f8;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .ref-stat .sub {
+      font-size: 10px;
+      color: var(--muted);
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    .info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .info-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 12px;
+    }
+
+    .info-item .icon {
+      color: #9b8b5a;
+      font-weight: 700;
+      min-width: 20px;
+    }
+
+    .info-item .text {
+      color: var(--muted);
+      opacity: 0.9;
+    }
+
     .toast{ 
       position:fixed; 
       left:50%; 
@@ -302,6 +473,15 @@
         padding: 12px 20px;
         min-height: 44px;
       }
+
+      .tabs {
+        font-size: 12px;
+      }
+
+      .tab-btn {
+        font-size: 11px;
+        padding: 8px 10px;
+      }
     }
   </style>
 
@@ -309,85 +489,199 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- TonConnect SDK -->
   <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
-  <!-- AdsGram SDK - https://docs.adsgram.ai/publisher/reward-interstitial-integration -->
+  <!-- AdsGram SDK -->
   <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 </head>
 <body>
   <div class="wrap">
-    <!-- Main Claim Card -->
-    <div class="card">
-      <h1>FAL Recon</h1>
-      <p class="lead">Earn $FAL by watching ads</p>
-
-      <div class="balance-display">
-        <div class="label">Your Balance</div>
-        <div class="value" id="falBalance">0 $FAL</div>
-        <div class="subtext" id="addressDisplay">—</div>
-      </div>
-
-      <button id="claimBtn" class="btn-claim">
-        <span id="claimBtnText">Watch Ad & Claim 100 $FAL</span>
-      </button>
-      <p class="small" id="claimStatus">Ready to earn!</p>
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="earn">💰 Earn</button>
+      <button class="tab-btn" data-tab="referral">🔗 Referral</button>
+      <button class="tab-btn" data-tab="wallet">👛 Wallet</button>
     </div>
 
-    <!-- Info Card -->
-    <div class="card">
-      <div class="section-title">ℹ️ How It Works</div>
-      
-      <div class="info-box">
-        <div class="title">Step 1: Watch Ad</div>
-        <div class="content">Click the button to watch a rewarded ad</div>
-      </div>
+    <!-- EARN TAB -->
+    <div class="tab-content active" id="earn-tab">
+      <div class="card">
+        <h1>FAL Recon</h1>
+        <p class="lead">Earn $FAL by watching ads</p>
 
-      <div class="info-box">
-        <div class="title">Step 2: Earn Tokens</div>
-        <div class="content">Get 100 $FAL instantly after watching</div>
-      </div>
-
-      <div class="info-box">
-        <div class="title">Step 3: Withdraw</div>
-        <div class="content">Claim to your TON wallet (coming soon)</div>
-      </div>
-
-      <div class="info-box">
-        <div class="title">⏱️ Claim Every 15 Minutes</div>
-        <div class="content">One claim per 15 minutes per account</div>
-      </div>
-    </div>
-
-    <!-- Wallet Card -->
-    <div class="card">
-      <div class="section-title">👛 Wallet</div>
-      
-      <div class="row">
-        <button id="connectWallet" class="btn-secondary" style="flex: 1;">Connect Wallet</button>
-        <button id="disconnectWallet" class="btn-secondary" style="display: none;">Disconnect</button>
-      </div>
-
-      <div id="withdrawSection" style="display: none;">
-        <div class="muted-small" style="margin-bottom: 10px;">Token Contract Address</div>
-        <div class="addr" id="tokenAddr">EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds</div>
-        
-        <div style="height: 12px;"></div>
-
-        <div class="row">
-          <input id="withdrawAmount" type="number" min="0" step="1" class="input" placeholder="Amount ($FAL)" />
-          <button id="maxBtn" class="btn-secondary">MAX</button>
+        <div class="balance-display">
+          <div class="label">Your Balance</div>
+          <div class="value" id="falBalance">0 $FAL</div>
+          <div class="subtext" id="addressDisplay">—</div>
         </div>
 
-        <button id="withdrawBtn" class="btn-secondary" style="width: 100%;">Withdraw</button>
-        <div class="muted-small" style="margin-top: 8px; text-align: center;">Minimum 1000 $FAL • Fee: 0.1 TON</div>
+        <button id="claimBtn" class="btn-claim">
+          <span id="claimBtnText">Watch Ad & Claim 100 $FAL</span>
+        </button>
+        <p class="small" id="claimStatus">Ready to earn!</p>
+      </div>
+
+      <div class="card">
+        <div class="section-title">ℹ️ How It Works</div>
+        
+        <div class="info-box">
+          <div class="title">Step 1: Watch Ad</div>
+          <div class="content">Click the button to watch a rewarded ad</div>
+        </div>
+
+        <div class="info-box">
+          <div class="title">Step 2: Earn Tokens</div>
+          <div class="content">Get 100 $FAL instantly after watching</div>
+        </div>
+
+        <div class="info-box">
+          <div class="title">Step 3: Withdraw</div>
+          <div class="content">Claim to your TON wallet</div>
+        </div>
+
+        <div class="info-box">
+          <div class="title">⏱️ Claim Every 15 Minutes</div>
+          <div class="content">One claim per 15 minutes per account</div>
+        </div>
       </div>
     </div>
 
-    <!-- Links Footer -->
-    <div class="card" style="text-align: center; gap: 8px; display: flex; flex-direction: column;">
-      <div style="font-size: 12px; color: #9aa0a6;">Connect with us</div>
-      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-        <a class="link" href="https://x.com/FALTACTICAl" target="_blank" rel="noopener">𝕏 Twitter</a>
-        <a class="link" href="https://t.me/FALTACTICAL_RECON" target="_blank" rel="noopener">📱 Telegram</a>
-        <a class="link" href="https://t.me/FAL_tacticalrecon" target="_blank" rel="noopener">📢 Channel</a>
+    <!-- REFERRAL TAB -->
+    <div class="tab-content" id="referral-tab">
+      <div class="card">
+        <h1>🎯 Referral Army</h1>
+        <p class="lead">Invite friends & earn forever</p>
+
+        <div class="dual-stat">
+          <div class="stat-box">
+            <div class="label">Sign-Up Bonus</div>
+            <div class="value">+10</div>
+            <div style="font-size: 10px; color: #9aa0a6; margin-top: 2px;">per person</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">Commission</div>
+            <div class="value">10%</div>
+            <div style="font-size: 10px; color: #9aa0a6; margin-top: 2px;">of their earnings</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🔗 Your Referral Link</div>
+        
+        <div class="referral-link-box">
+          <div class="label">Share this link to earn rewards:</div>
+          <div class="referral-link-display">
+            <div class="referral-link-text" id="referralLinkDisplay">Loading...</div>
+            <button id="copyRefLink" class="btn-secondary btn-copy">Copy</button>
+          </div>
+          <button id="shareRefLink" class="btn-claim" style="margin-top: 8px; padding: 10px;">
+            📤 Share Link
+          </button>
+        </div>
+
+        <div class="referral-stats">
+          <div class="ref-stat">
+            <div class="label">Total Referrals</div>
+            <div class="value" id="refCount">0</div>
+            <div class="sub">Active users</div>
+          </div>
+          <div class="ref-stat">
+            <div class="label">Referral Earnings</div>
+            <div class="value" id="refEarnings">0</div>
+            <div class="sub">$FAL earned</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">📊 How Referrals Work</div>
+        
+        <div class="info-list">
+          <div class="info-item">
+            <div class="icon">✓</div>
+            <div class="text"><strong>Share:</strong> Send your unique link to friends</div>
+          </div>
+          <div class="info-item">
+            <div class="icon">✓</div>
+            <div class="text"><strong>Join:</strong> They use your link to start playing</div>
+          </div>
+          <div class="info-item">
+            <div class="icon">✓</div>
+            <div class="text"><strong>Earn:</strong> Get 10 $FAL per person sign-up</div>
+          </div>
+          <div class="info-item">
+            <div class="icon">✓</div>
+            <div class="text"><strong>Bonus:</strong> Earn 10% from their ad claims forever</div>
+          </div>
+          <div class="info-item">
+            <div class="icon">💰</div>
+            <div class="text"><strong>Unlimited:</strong> No limit on referrals or earnings!</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">🏆 Top Referrers</div>
+        <div id="topReferrers" style="font-size: 12px; color: var(--muted); text-align: center; padding: 20px;">
+          Loading leaderboard...
+        </div>
+      </div>
+    </div>
+
+    <!-- WALLET TAB -->
+    <div class="tab-content" id="wallet-tab">
+      <div class="card">
+        <div class="section-title">👛 Wallet</div>
+        
+        <div class="row">
+          <button id="connectWallet" class="btn-secondary" style="flex: 1;">Connect Wallet</button>
+          <button id="disconnectWallet" class="btn-secondary" style="display: none;">Disconnect</button>
+        </div>
+
+        <div id="withdrawSection" style="display: none;">
+          <div style="margin-top: 12px;">
+            <div class="muted-small" style="margin-bottom: 10px;">Token Contract Address</div>
+            <div class="addr" id="tokenAddr">EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds</div>
+          </div>
+          
+          <div style="height: 12px;"></div>
+
+          <div class="row">
+            <input id="withdrawAmount" type="number" min="0" step="1" class="input" placeholder="Amount ($FAL)" />
+            <button id="maxBtn" class="btn-secondary">MAX</button>
+          </div>
+
+          <button id="withdrawBtn" class="btn-secondary" style="width: 100%;">Withdraw</button>
+          <div class="muted-small" style="margin-top: 8px; text-align: center;">Minimum 1000 $FAL • Fee: 0.1 TON</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">💵 Balance Summary</div>
+        
+        <div class="dual-stat">
+          <div class="stat-box">
+            <div class="label">From Ads</div>
+            <div class="value" id="adBalance">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">From Referrals</div>
+            <div class="value" id="refBalanceDisplay">0</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 12px; background: rgba(155,139,90,0.08); border-radius: 10px; text-align: center;">
+          <div class="muted-small">Total Balance</div>
+          <div style="font-size: 20px; color: #f5f7f8; font-weight: 700; margin-top: 6px;" id="totalBalance">0 $FAL</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">📋 Links & Info</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+          <a class="link" href="https://x.com/FALTACTICAl" target="_blank" rel="noopener">𝕏 Twitter</a>
+          <a class="link" href="https://t.me/FALTACTICAL_RECON" target="_blank" rel="noopener">📱 Telegram</a>
+          <a class="link" href="https://t.me/FAL_tacticalrecon" target="_blank" rel="noopener">📢 Channel</a>
+        </div>
       </div>
     </div>
   </div>
@@ -404,22 +698,30 @@
         tg.enableClosingConfirmation();
       }
 
-      const STORAGE_KEY = 'fal_recon_v1';
+      const STORAGE_KEY = 'fal_recon_v2';
       let state = {
+        userId: null,
+        userName: null,
+        referralCode: null,
+        referredBy: null,
+        adBalance: 0,
+        refBalance: 0,
+        referrals: [],
         connected: false,
         address: null,
-        userId: null,
-        falBalance: 0,
         lastClaimTime: 0
       };
 
       // Config
       const CURRENT_REWARD = 100;
+      const REFERRAL_BONUS = 10;
+      const REFERRAL_COMMISSION = 0.1; // 10%
       const MIN_WITHDRAW = 1000;
       const WITHDRAW_FEE_TON = 0.1;
       const TOKEN_ADDR = 'EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds';
-      const ADSGRAM_BLOCK_ID = '38011'; // Your AdsGram block ID from partner.adsgram.ai
+      const ADSGRAM_BLOCK_ID = '38011';
       const CLAIM_COOLDOWN_MS = 15 * 60 * 1000;
+      const API_BASE = 'https://api.github.com/repos/FALRECON/FAL';
 
       // UI elements
       const falEl = document.getElementById('falBalance');
@@ -434,14 +736,54 @@
       const withdrawBtn = document.getElementById('withdrawBtn');
       const amountInput = document.getElementById('withdrawAmount');
       const maxBtn = document.getElementById('maxBtn');
-      const tokenAddrEl = document.getElementById('tokenAddr');
+
+      // Referral UI
+      const referralLinkDisplay = document.getElementById('referralLinkDisplay');
+      const copyRefLink = document.getElementById('copyRefLink');
+      const shareRefLink = document.getElementById('shareRefLink');
+      const refCount = document.getElementById('refCount');
+      const refEarnings = document.getElementById('refEarnings');
+      const topReferrers = document.getElementById('topReferrers');
+      const adBalance = document.getElementById('adBalance');
+      const refBalanceDisplay = document.getElementById('refBalanceDisplay');
+      const totalBalance = document.getElementById('totalBalance');
+
+      // Tab system
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabName = btn.getAttribute('data-tab');
+          tabBtns.forEach(b => b.classList.remove('active'));
+          tabContents.forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(`${tabName}-tab`).classList.add('active');
+        });
+      });
 
       let tonconnect = null;
       let AdController = null;
 
+      function generateReferralCode(){
+        if (!state.userId) return null;
+        return `FAL_${state.userId}_${Math.random().toString(36).substring(2,8).toUpperCase()}`;
+      }
+
+      function getReferralLink(){
+        if (!state.referralCode) return null;
+        const baseUrl = window.location.origin + window.location.pathname;
+        return `${baseUrl}?ref=${state.referralCode}`;
+      }
+
       function saveState(){
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          falBalance: state.falBalance,
+          userId: state.userId,
+          userName: state.userName,
+          referralCode: state.referralCode,
+          referredBy: state.referredBy,
+          adBalance: state.adBalance,
+          refBalance: state.refBalance,
           lastClaimTime: state.lastClaimTime,
           address: state.address
         }));
@@ -452,18 +794,42 @@
           const raw = localStorage.getItem(STORAGE_KEY);
           if (raw){
             const obj = JSON.parse(raw);
-            state.falBalance = Number(obj.falBalance || 0);
+            state.adBalance = Number(obj.adBalance || 0);
+            state.refBalance = Number(obj.refBalance || 0);
             state.lastClaimTime = Number(obj.lastClaimTime || 0);
-            state.address = obj.address || null;
+            state.referralCode = obj.referralCode;
+            state.referredBy = obj.referredBy;
+            state.userId = obj.userId;
+            state.userName = obj.userName;
+            state.address = obj.address;
           }
         }catch(e){
           console.error('Load state error:', e);
         }
 
-        // Get Telegram user ID if available
-        if (tg?.initDataUnsafe?.user?.id) {
-          state.userId = tg.initDataUnsafe.user.id;
+        // Get Telegram user info
+        if (tg?.initDataUnsafe?.user){
+          const user = tg.initDataUnsafe.user;
+          state.userId = user.id;
+          state.userName = user.first_name || `User${user.id}`;
+          if (!state.referralCode) {
+            state.referralCode = generateReferralCode();
+          }
         }
+
+        // Check for referral code in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!state.referredBy && urlParams.has('ref')) {
+          state.referredBy = urlParams.get('ref');
+          saveState();
+          showToast('✅ Referral code saved!');
+        }
+
+        saveState();
+      }
+
+      function getTotalBalance(){
+        return state.adBalance + state.refBalance;
       }
 
       function getClaimCooldownRemaining(){
@@ -492,10 +858,22 @@
       }
 
       function render(){
-        falEl.textContent = `${Number(state.falBalance).toLocaleString()} $FAL`;
-        const addrText = state.address ? state.address.slice(0, 6) + '...' + state.address.slice(-4) : '—';
+        const total = getTotalBalance();
+        falEl.textContent = `${Number(total).toLocaleString()} $FAL`;
+        const addrText = state.address ? state.address.slice(0, 6) + '...' + state.address.slice(-4) : (state.userName || '—');
         addressEl.textContent = addrText;
+
+        adBalance.textContent = Number(state.adBalance).toLocaleString();
+        refBalanceDisplay.textContent = Number(state.refBalance).toLocaleString();
+        totalBalance.textContent = `${Number(total).toLocaleString()} $FAL`;
         
+        if (state.referralCode) {
+          referralLinkDisplay.textContent = getReferralLink();
+        }
+
+        refCount.textContent = state.referrals?.length || 0;
+        refEarnings.textContent = Number(state.refBalance).toLocaleString();
+
         if (state.connected) {
           connectBtn.style.display = 'none';
           disconnectBtn.style.display = 'block';
@@ -515,51 +893,36 @@
         setTimeout(()=> toast.style.display = 'none', ms);
       }
 
-      // Initialize AdsGram SDK
       function initAdsGram(){
         try {
           if (typeof window.Adsgram !== 'undefined') {
             AdController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
-            console.log('AdsGram initialized with block ID:', ADSGRAM_BLOCK_ID);
-          } else {
-            console.error('AdsGram SDK not loaded');
+            console.log('AdsGram initialized');
           }
         } catch (error) {
           console.error('AdsGram init error:', error);
         }
       }
 
-      // AdsGram Rewarded Ad Integration
-      // Based on: https://docs.adsgram.ai/publisher/reward-interstitial-integration
       async function playAdsGramRewarded(){
         return new Promise((resolve) => {
           if (!AdController) {
-            console.error('AdsGram not initialized');
-            showToast('Ads not loaded. Try again later.');
+            showToast('Ads not loaded. Try again.');
             resolve(false);
             return;
           }
 
           AdController.show()
             .then((result) => {
-              console.log('Ad result:', result);
-              // User watched the ad till the end (rewarded format)
-              // result.done is true if watched till end
-              if (result.done) {
-                console.log('Ad completed successfully');
+              if (result?.done) {
                 resolve(true);
               } else {
-                console.log('Ad interrupted or skipped');
                 resolve(false);
               }
             })
-            .catch((result) => {
-              console.error('Ad error:', result);
-              showToast('Ads not loaded. Try again later.');
+            .catch(() => {
+              showToast('Ads not loaded. Try again.');
               resolve(false);
-            })
-            .finally(() => {
-              // Any cleanup if needed
             });
         });
       }
@@ -577,21 +940,55 @@
         try{
           const rewarded = await playAdsGramRewarded();
           if (rewarded){
-            state.falBalance = Number(state.falBalance) + Number(CURRENT_REWARD);
+            state.adBalance = Number(state.adBalance) + Number(CURRENT_REWARD);
+            
+            // Apply 10% to referrer if exists
+            if (state.referredBy) {
+              const commissionAmount = Math.floor(CURRENT_REWARD * REFERRAL_COMMISSION);
+              // TODO: Send to backend to credit referrer
+              console.log(`Commission: ${commissionAmount} $FAL to ${state.referredBy}`);
+            }
+
             state.lastClaimTime = Date.now();
             saveState();
             render();
             showToast(`✅ Earned ${CURRENT_REWARD} $FAL!`, 2500);
           } else {
-            showToast('Ads not loaded. Try again later.');
+            showToast('Ads not loaded. Try again.');
           }
         }catch(e){
           console.error('Ad error:', e);
-          showToast('Ads not loaded. Try again later.');
+          showToast('Error. Try again.');
         }
         finally{
           claimBtn.disabled = false;
           updateClaimButtonState();
+        }
+      });
+
+      copyRefLink.addEventListener('click', async ()=>{
+        try{
+          await navigator.clipboard.writeText(getReferralLink());
+          showToast('✅ Link copied!', 2000);
+        }catch(e){
+          showToast('Copy failed');
+        }
+      });
+
+      shareRefLink.addEventListener('click', ()=>{
+        const link = getReferralLink();
+        const text = `🎯 Join me on FAL Recon! Earn $FAL by watching ads. Use my referral link and we both get bonus rewards!\n\n${link}`;
+        
+        if (tg?.shareUrl) {
+          tg.shareUrl(link, text);
+        } else if (navigator.share) {
+          navigator.share({
+            title: 'FAL Recon',
+            text: text,
+            url: link
+          });
+        } else {
+          showToast('Share not available');
         }
       });
 
@@ -668,7 +1065,7 @@
           showToast(`Minimum ${MIN_WITHDRAW} $FAL`);
           return;
         }
-        if (amount > state.falBalance) {
+        if (amount > getTotalBalance()) {
           showToast('Insufficient balance');
           return;
         }
@@ -677,7 +1074,14 @@
         withdrawBtn.textContent = 'Processing...';
         try{
           await new Promise(r => setTimeout(r, 1500));
-          state.falBalance = Math.max(0, state.falBalance - amount);
+          const toWithdraw = amount;
+          if (state.adBalance >= toWithdraw) {
+            state.adBalance -= toWithdraw;
+          } else {
+            const fromAds = state.adBalance;
+            state.adBalance = 0;
+            state.refBalance -= (toWithdraw - fromAds);
+          }
           saveState();
           showToast(`✅ Withdrawn ${amount} $FAL`);
           amountInput.value = '';
@@ -692,9 +1096,9 @@
         }
       });
 
-      maxBtn.addEventListener('click', ()=>{ amountInput.value = state.falBalance; });
+      maxBtn.addEventListener('click', ()=>{ amountInput.value = getTotalBalance(); });
 
-      // Initialize app
+      // Load and initialize
       loadState();
       initAdsGram();
       initTonConnect().catch(()=>{});
