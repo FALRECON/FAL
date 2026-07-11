@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FAL Claim — Mini App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover" />
+  <title>FAL Faucet — Telegram Mini App</title>
   <style>
     :root{
       --bg:#070707;
@@ -14,217 +14,438 @@
       --glass: rgba(255,255,255,0.03);
       --radius:14px;
       --button-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      --tg-theme-bg-color: #ffffff;
+      --tg-theme-text-color: #000000;
     }
 
-    html,body{ height:100%; margin:0; font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:
-      radial-gradient(1200px 600px at 10% 10%, rgba(155,139,90,0.03), transparent 8%),
-      radial-gradient(800px 400px at 90% 90%, rgba(127,111,68,0.02), transparent 6%),
-      var(--bg); color:var(--muted); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    * {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
 
-    .wrap{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:32px; }
+    html,body{ 
+      height:100%; 
+      margin:0; 
+      font-family:Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(155,139,90,0.03), transparent 8%),
+                  radial-gradient(800px 400px at 90% 90%, rgba(127,111,68,0.02), transparent 6%),
+                  var(--bg); 
+      color:var(--muted); 
+      -webkit-font-smoothing:antialiased; 
+      -moz-osx-font-smoothing:grayscale;
+      overflow-x: hidden;
+    }
+
+    .wrap{ 
+      min-height:100vh; 
+      display:flex; 
+      flex-direction: column;
+      align-items:center; 
+      justify-content:flex-start;
+      padding:12px; 
+      padding-top: 8px;
+      padding-bottom: 20px;
+      gap: 12px;
+    }
 
     .card{
-      width:100%; max-width:720px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
-      border-radius:calc(var(--radius) + 4px); padding:32px; box-shadow: 0 6px 30px rgba(0,0,0,0.6);
-      border:1px solid rgba(255,255,255,0.03); display:flex; gap:20px; color:var(--muted);
-    }
-
-    .left, .right{ flex:1; min-width:260px; display:flex; flex-direction:column; gap:14px; align-items:center; }
-    .right{ align-items:stretch; }
-
-    h1{ margin:0; font-size:18px; color:#dfe6e9; letter-spacing:0.6px; }
-    p.lead{ margin:0; color:var(--muted); font-size:13px; text-align:center; opacity:0.95; }
-
-    .balance{
-      width:100%;
-      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
-      border-radius:12px; padding:14px 16px; text-align:center; box-sizing:border-box;
+      width:100%; 
+      max-width:540px; 
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+      border-radius:16px; 
+      padding:20px; 
+      box-shadow: 0 6px 30px rgba(0,0,0,0.6);
       border:1px solid rgba(255,255,255,0.03);
     }
-    .balance .label{ font-size:12px; color:var(--muted); margin-bottom:6px; }
-    .balance .value{ font-size:28px; color:#f5f7f8; font-weight:700; letter-spacing:0.6px; }
+
+    h1{ 
+      margin:0 0 4px 0; 
+      font-size:20px; 
+      color:#dfe6e9; 
+      letter-spacing:0.6px;
+      text-align: center;
+    }
+
+    .lead{ 
+      margin:0 0 16px 0; 
+      color:var(--muted); 
+      font-size:13px; 
+      text-align:center; 
+      opacity:0.95;
+    }
+
+    .balance-display{
+      width:100%;
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+      border-radius:14px; 
+      padding:16px; 
+      text-align:center; 
+      box-sizing:border-box;
+      border:1px solid rgba(255,255,255,0.03);
+      margin-bottom: 16px;
+    }
+
+    .balance-display .label{ 
+      font-size:12px; 
+      color:var(--muted); 
+      margin-bottom:8px;
+      opacity: 0.8;
+    }
+
+    .balance-display .value{ 
+      font-size:32px; 
+      color:#f5f7f8; 
+      font-weight:700; 
+      letter-spacing:0.6px;
+      line-height: 1.2;
+    }
+
+    .balance-display .subtext{
+      font-size:11px;
+      color: var(--muted);
+      margin-top: 8px;
+      opacity: 0.7;
+    }
 
     .btn-claim{
-      appearance:none; -webkit-appearance:none; border:0; outline:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
-      padding:16px 42px; font-size:18px; font-weight:700; color:#0b0b0b; background: linear-gradient(180deg, var(--accent), var(--accent-2));
-      border-radius:12px; box-shadow: var(--button-shadow); transition: transform .14s ease, box-shadow .14s ease, opacity .12s ease; user-select:none;
-    }
-    .btn-claim:hover{ transform: translateY(-3px); }
-    .btn-claim[disabled]{ opacity:0.6; cursor:default; transform:none; box-shadow:none; }
-
-    .small{ font-size:12px; color: #9aa0a6; opacity:0.9; text-align:center; }
-
-    .panel{ background:var(--panel); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.03); }
-
-    .withdraw h3{ margin:0 0 6px 0; color:#e7ecef; }
-    .row{ display:flex; gap:8px; align-items:center; }
-    .input, .select{
-      background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); padding:10px 12px; border-radius:8px; flex:1;
-    }
-    .muted-small{ font-size:12px; color:#9aa0a6; }
-
-    .connect-btn{
-      padding:10px 12px; border-radius:8px; background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); cursor:pointer;
-    }
-
-    .contract{
-      display:flex; gap:8px; align-items:center; justify-content:space-between; width:100%;
-    }
-    .contract .addr{ font-family:monospace; font-size:13px; color:#dfe6e9; word-break:break-all; }
-
-    .ad{
-      width:100%; padding:10px 12px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.006), rgba(255,255,255,0.003)); border:1px solid rgba(255,255,255,0.02);
-      display:flex; align-items:center; justify-content:center; color:var(--muted); font-weight:600; font-size:13px;
+      width: 100%;
+      appearance:none; 
+      -webkit-appearance:none; 
+      border:0; 
+      outline:0; 
+      cursor:pointer; 
+      display:flex; 
+      align-items:center; 
+      justify-content:center;
+      padding:14px 24px; 
+      font-size:16px; 
+      font-weight:700; 
+      color:#0b0b0b; 
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      border-radius:12px; 
+      box-shadow: var(--button-shadow); 
+      transition: transform .14s ease, box-shadow .14s ease, opacity .12s ease; 
+      user-select:none;
+      -webkit-user-select: none;
+      min-height: 48px;
+      font-family: inherit;
     }
 
-    .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:28px; background:var(--panel); border-radius:10px; padding:10px 16px; color:#dfe6e9;
-      border:1px solid rgba(255,255,255,0.04); box-shadow: 0 6px 20px rgba(0,0,0,0.6); display:none; font-size:14px;
+    .btn-claim:active:not([disabled]) { 
+      transform: scale(0.98); 
     }
 
-    .link { color:var(--muted); text-decoration:none; font-size:13px; }
-    .desc{ font-size:13px; color:#cfd6d8; }
+    .btn-claim[disabled]{ 
+      opacity:0.5; 
+      cursor:not-allowed; 
+      transform:none; 
+    }
 
-    @media (max-width:880px){
-      .card{ flex-direction:column; align-items:center; padding:20px; }
-      .left,.right{ width:100%; align-items:center; }
-      .right{ align-items:stretch; }
+    .small{ 
+      font-size:11px; 
+      color: #9aa0a6; 
+      opacity:0.85; 
+      text-align:center;
+      margin: 8px 0 0 0;
+    }
+
+    .section-title{
+      font-size: 13px;
+      font-weight: 600;
+      color: #e7ecef;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .row{ 
+      display:flex; 
+      gap:8px; 
+      align-items:center;
+      margin-bottom: 8px;
+    }
+
+    .input{
+      background:transparent; 
+      border:1px solid rgba(255,255,255,0.04); 
+      color:var(--muted); 
+      padding:10px 12px; 
+      border-radius:8px; 
+      flex:1;
+      font-size: 14px;
+      font-family: inherit;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+
+    .input::placeholder{
+      color: rgba(155, 160, 166, 0.5);
+    }
+
+    .muted-small{ 
+      font-size:11px; 
+      color:#9aa0a6;
+      opacity: 0.85;
+    }
+
+    .btn-secondary{
+      padding:10px 12px; 
+      border-radius:8px; 
+      background:transparent; 
+      border:1px solid rgba(255,255,255,0.06); 
+      color:var(--muted); 
+      cursor:pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      -webkit-user-select: none;
+      user-select: none;
+      font-family: inherit;
+    }
+
+    .btn-secondary:active:not([disabled]){
+      background: rgba(155,139,90,0.1);
+      border-color: rgba(155,139,90,0.3);
+    }
+
+    .btn-secondary[disabled]{
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .addr{ 
+      font-family:monospace; 
+      font-size:12px; 
+      color:#dfe6e9; 
+      word-break:break-all;
+      padding: 8px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 6px;
+    }
+
+    .toast{ 
+      position:fixed; 
+      left:50%; 
+      transform:translateX(-50%); 
+      bottom:28px; 
+      background:var(--panel); 
+      border-radius:10px; 
+      padding:12px 16px; 
+      color:#dfe6e9;
+      border:1px solid rgba(255,255,255,0.04); 
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6); 
+      display:none; 
+      font-size:13px;
+      z-index: 1000;
+      max-width: 280px;
+      word-wrap: break-word;
+      text-align: center;
+    }
+
+    .link { 
+      color:#9b8b5a; 
+      text-decoration:none; 
+      font-size:12px;
+      opacity: 0.9;
+    }
+
+    .link:active{
+      opacity: 0.7;
+    }
+
+    .info-box{
+      background: rgba(155,139,90,0.05);
+      border: 1px solid rgba(155,139,90,0.2);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .info-box .title{
+      font-size: 12px;
+      font-weight: 600;
+      color: #dfe6e9;
+      margin-bottom: 4px;
+    }
+
+    .info-box .content{
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0.9;
+    }
+
+    @media (max-width: 480px){
+      .wrap{
+        padding: 8px;
+        padding-top: 4px;
+        gap: 10px;
+      }
+
+      .card{
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      h1{
+        font-size: 18px;
+      }
+
+      .balance-display .value{
+        font-size: 28px;
+      }
+
+      .btn-claim{
+        font-size: 14px;
+        padding: 12px 20px;
+        min-height: 44px;
+      }
     }
   </style>
 
-  <!-- TonConnect SDK (used for connecting Ton wallets like TonKeeper, TonHub, etc.) -->
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- TonConnect SDK -->
   <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
   <!-- AdsGram SDK -->
   <script src="https://ds.adsgram.ai/adsgram.js"></script>
 </head>
 <body>
   <div class="wrap">
-    <main class="card" role="main" aria-labelledby="title">
-      <section class="left" aria-label="branding">
-        <h1 id="title">FAL Tactical Recon</h1>
-        <p class="lead">Watch AdsGram rewarded ads to earn $FAL rewards.</p>
+    <!-- Main Claim Card -->
+    <div class="card">
+      <h1>FAL Faucet</h1>
+      <p class="lead">Earn $FAL by watching ads</p>
 
-        <div class="panel balance" aria-live="polite">
-          <div class="label">Balance</div>
-          <div class="value" id="falBalance">0 $FAL</div>
-          <div style="margin-top:8px" class="muted-small">TON: <span id="tonBalance">—</span> • Address: <span id="walletAddr">—</span></div>
+      <div class="balance-display">
+        <div class="label">Your Balance</div>
+        <div class="value" id="falBalance">0 $FAL</div>
+        <div class="subtext" id="addressDisplay">—</div>
+      </div>
+
+      <button id="claimBtn" class="btn-claim">
+        <span id="claimBtnText">Watch Ad & Claim 100 $FAL</span>
+      </button>
+      <p class="small" id="claimStatus">Ready to earn!</p>
+    </div>
+
+    <!-- Info Card -->
+    <div class="card">
+      <div class="section-title">ℹ️ How It Works</div>
+      
+      <div class="info-box">
+        <div class="title">Step 1: Watch Ad</div>
+        <div class="content">Click the button to watch a rewarded ad</div>
+      </div>
+
+      <div class="info-box">
+        <div class="title">Step 2: Earn Tokens</div>
+        <div class="content">Get 100 $FAL instantly after watching</div>
+      </div>
+
+      <div class="info-box">
+        <div class="title">Step 3: Withdraw</div>
+        <div class="content">Claim to your TON wallet (coming soon)</div>
+      </div>
+
+      <div class="info-box">
+        <div class="title">⏱️ Claim Every 15 Minutes</div>
+        <div class="content">One claim per 15 minutes per account</div>
+      </div>
+    </div>
+
+    <!-- Wallet Card -->
+    <div class="card">
+      <div class="section-title">👛 Wallet</div>
+      
+      <div class="row">
+        <button id="connectWallet" class="btn-secondary" style="flex: 1;">Connect Wallet</button>
+        <button id="disconnectWallet" class="btn-secondary" style="display: none;">Disconnect</button>
+      </div>
+
+      <div id="withdrawSection" style="display: none;">
+        <div class="muted-small" style="margin-bottom: 10px;">Token Contract Address</div>
+        <div class="addr" id="tokenAddr">EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds</div>
+        
+        <div style="height: 12px;"></div>
+
+        <div class="row">
+          <input id="withdrawAmount" type="number" min="0" step="1" class="input" placeholder="Amount ($FAL)" />
+          <button id="maxBtn" class="btn-secondary">MAX</button>
         </div>
 
-        <div style="height:8px"></div>
+        <button id="withdrawBtn" class="btn-secondary" style="width: 100%;">Withdraw</button>
+        <div class="muted-small" style="margin-top: 8px; text-align: center;">Minimum 1000 $FAL • Fee: 0.1 TON</div>
+      </div>
+    </div>
 
-        <button id="claimBtn" class="btn-claim" aria-label="Watch AdsGram ad to claim reward">claim your 100$FAL</button>
-        <p class="small" id="claimStatus">Official app — connect backend to enable claim and withdrawal flows.</p>
-
-        <div style="width:100%; margin-top:12px" class="ad">AdsGram — Watch ads, earn $FAL</div>
-      </section>
-
-      <section class="right" aria-label="withdrawal">
-        <div class="panel withdraw">
-          <h3>Withdraw tokens</h3>
-          <p class="desc">Auto-withdrawal: fee 0.1 TON • minimum 1000 $FAL</p>
-
-          <div style="height:8px"></div>
-
-          <div class="contract">
-            <div style="flex:1">
-              <div class="muted-small">Token contract</div>
-              <div class="addr" id="tokenAddr">EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds</div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:6px; margin-left:10px;">
-              <button id="copyAddr" class="connect-btn" title="Copy contract address">Copy</button>
-              <button id="showInfo" class="connect-btn" title="Token info">Info</button>
-            </div>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <label class="muted-small">Amount to withdraw ($FAL)</label>
-          <div class="row" style="margin-bottom:8px;">
-            <input id="withdrawAmount" type="number" min="0" step="1" class="input" placeholder="e.g. 1000" />
-            <button id="maxBtn" class="connect-btn" title="Use full balance">MAX</button>
-          </div>
-
-          <div class="row" style="margin-bottom:8px;">
-            <button id="connectWallet" class="connect-btn">Connect Wallet</button>
-            <button id="withdrawBtn" class="connect-btn">Withdraw</button>
-          </div>
-
-          <div class="muted-small">Note: Withdrawal requires paying 0.1 TON fee. Implement server-side withdrawal for production (instructions below).</div>
-
-          <div style="height:10px"></div>
-          <div class="muted-small">Price & listing</div>
-          <div style="display:flex; gap:8px; margin-top:6px;">
-            <input id="price" class="input" placeholder="deDust price placeholder" disabled />
-            <button id="fetchPrice" class="connect-btn" disabled title="Hook your price API here">Fetch</button>
-          </div>
-
-          <div style="height:12px"></div>
-          <div>
-            <div class="muted-small">Project</div>
-            <div style="margin-top:6px; font-size:13px; color:#cfd6d8;">
-              $FAL is more than a token—it's a mission. Inspired by military precision, discipline, and unity, $FAL is building an army of loyal holders committed to long-term growth. No retrea[...]
-            </div>
-
-            <div style="height:12px"></div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <a class="link" href="https://x.com/FALTACTICAl" target="_blank" rel="noopener">Join us on X</a>
-              <a class="link" href="https://t.me/FALTACTICAL_RECON" target="_blank" rel="noopener">Telegram group</a>
-              <a class="link" href="https://t.me/FAL_tacticalrecon" target="_blank" rel="noopener">Telegram channel</a>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
+    <!-- Links Footer -->
+    <div class="card" style="text-align: center; gap: 8px; display: flex; flex-direction: column;">
+      <div style="font-size: 12px; color: #9aa0a6;">Connect with us</div>
+      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <a class="link" href="https://x.com/FALTACTICAl" target="_blank" rel="noopener">𝕏 Twitter</a>
+        <a class="link" href="https://t.me/FALTACTICAL_RECON" target="_blank" rel="noopener">📱 Telegram</a>
+        <a class="link" href="https://t.me/FAL_tacticalrecon" target="_blank" rel="noopener">📢 Channel</a>
+      </div>
+    </div>
   </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite">You earned 100 $FAL</div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
     (function(){
-      // App state stored in localStorage so balance persists across refresh/close
-      const STORAGE_KEY = 'fal_balance_v1';
+      // Initialize Telegram Web App
+      const tg = window.Telegram?.WebApp;
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        tg.enableClosingConfirmation();
+      }
+
+      const STORAGE_KEY = 'fal_faucet_v1';
       let state = {
         connected: false,
         address: null,
+        userId: null,
         falBalance: 0,
-        tonBalance: 0,
         lastClaimTime: 0
       };
 
       // Config
-      const CURRENT_REWARD = 100; // $FAL per full ad
+      const CURRENT_REWARD = 100;
       const MIN_WITHDRAW = 1000;
       const WITHDRAW_FEE_TON = 0.1;
       const TOKEN_ADDR = 'EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds';
-      const ADSGRAM_BLOCK_ID = 38011; // Your AdsGram block ID
-      const CLAIM_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
+      const ADSGRAM_BLOCK_ID = 38011;
+      const CLAIM_COOLDOWN_MS = 15 * 60 * 1000;
 
       // UI elements
       const falEl = document.getElementById('falBalance');
-      const tonEl = document.getElementById('tonBalance');
-      const addrEl = document.getElementById('walletAddr');
+      const addressEl = document.getElementById('addressDisplay');
       const claimBtn = document.getElementById('claimBtn');
+      const claimBtnText = document.getElementById('claimBtnText');
       const claimStatus = document.getElementById('claimStatus');
       const toast = document.getElementById('toast');
       const connectBtn = document.getElementById('connectWallet');
+      const disconnectBtn = document.getElementById('disconnectWallet');
+      const withdrawSection = document.getElementById('withdrawSection');
       const withdrawBtn = document.getElementById('withdrawBtn');
       const amountInput = document.getElementById('withdrawAmount');
       const maxBtn = document.getElementById('maxBtn');
-      const copyAddr = document.getElementById('copyAddr');
-      const fetchPrice = document.getElementById('fetchPrice');
-      const priceInput = document.getElementById('price');
-      const showInfo = document.getElementById('showInfo');
+      const tokenAddrEl = document.getElementById('tokenAddr');
 
-      // TonConnect instance (for multiple wallet support)
       let tonconnect = null;
 
       function saveState(){
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
           falBalance: state.falBalance,
-          lastClaimTime: state.lastClaimTime
+          lastClaimTime: state.lastClaimTime,
+          address: state.address
         }));
       }
-      
+
       function loadState(){
         try{
           const raw = localStorage.getItem(STORAGE_KEY);
@@ -232,13 +453,15 @@
             const obj = JSON.parse(raw);
             state.falBalance = Number(obj.falBalance || 0);
             state.lastClaimTime = Number(obj.lastClaimTime || 0);
-          } else {
-            state.falBalance = 0;
-            state.lastClaimTime = 0;
+            state.address = obj.address || null;
           }
-        }catch(e){ 
-          state.falBalance = 0;
-          state.lastClaimTime = 0;
+        }catch(e){
+          console.error('Load state error:', e);
+        }
+
+        // Get Telegram user ID if available
+        if (tg?.initDataUnsafe?.user?.id) {
+          state.userId = tg.initDataUnsafe.user.id;
         }
       }
 
@@ -257,24 +480,31 @@
           claimBtn.disabled = true;
           const minutes = Math.floor(cooldownRemaining / 60);
           const seconds = cooldownRemaining % 60;
-          claimBtn.textContent = `wait ${minutes}m ${seconds}s`;
-          claimStatus.textContent = `Next claim available in ${minutes}m ${seconds}s`;
-          
-          // Update every second
+          claimBtnText.textContent = `Wait ${minutes}m ${seconds}s`;
+          claimStatus.textContent = `Next claim in ${minutes}m ${seconds}s`;
           setTimeout(updateClaimButtonState, 1000);
         } else {
           claimBtn.disabled = false;
-          claimBtn.textContent = 'claim your 100$FAL';
-          claimStatus.textContent = 'Ready to claim! Watch an ad to earn.';
+          claimBtnText.textContent = `Watch Ad & Claim ${CURRENT_REWARD} $FAL`;
+          claimStatus.textContent = 'Ready to earn!';
         }
       }
 
       function render(){
         falEl.textContent = `${Number(state.falBalance).toLocaleString()} $FAL`;
-        tonEl.textContent = state.tonBalance ? `${state.tonBalance} TON` : '—';
-        addrEl.textContent = state.address || '—';
-        connectBtn.textContent = state.connected ? 'Wallet: connected' : 'Connect Wallet';
-        connectBtn.style.borderColor = state.connected ? 'rgba(155,139,90,0.9)' : '';
+        const addrText = state.address ? state.address.slice(0, 6) + '...' + state.address.slice(-4) : '—';
+        addressEl.textContent = addrText;
+        
+        if (state.connected) {
+          connectBtn.style.display = 'none';
+          disconnectBtn.style.display = 'block';
+          withdrawSection.style.display = 'block';
+        } else {
+          connectBtn.style.display = 'block';
+          disconnectBtn.style.display = 'none';
+          withdrawSection.style.display = 'none';
+        }
+
         updateClaimButtonState();
       }
 
@@ -284,10 +514,7 @@
         setTimeout(()=> toast.style.display = 'none', ms);
       }
 
-      // AdsGram integration
-      // Based on: https://docs.adsgram.ai/publisher/reward-interstitial-integration
       async function playAdsGramRewarded(){
-        // Check if AdsGram SDK is loaded
         if (window.AdsgRam && typeof window.AdsgRam.show === 'function'){
           return new Promise((resolve) => {
             window.AdsgRam.show({
@@ -308,7 +535,6 @@
           });
         }
 
-        // Try alternative naming
         if (window.ADSGRAM && typeof window.ADSGRAM.showRewarded === 'function'){
           return new Promise((resolve) => {
             window.ADSGRAM.showRewarded({
@@ -320,20 +546,18 @@
           });
         }
 
-        // If no AdsGram SDK is available, throw error
         throw new Error('Ads not loaded. Try again later.');
       }
 
-      // Main claim flow with cooldown
       claimBtn.addEventListener('click', async ()=>{
         const cooldownRemaining = getClaimCooldownRemaining();
         if (cooldownRemaining > 0) {
-          showToast(`Please wait ${cooldownRemaining}s before claiming again`);
+          showToast(`Wait ${cooldownRemaining}s`);
           return;
         }
 
         claimBtn.disabled = true;
-        claimBtn.textContent = 'loading ad...';
+        claimBtnText.textContent = 'Loading ad...';
 
         try{
           const watched = await playAdsGramRewarded();
@@ -342,12 +566,12 @@
             state.lastClaimTime = Date.now();
             saveState();
             render();
-            showToast(`You earned ${CURRENT_REWARD} $FAL`);
+            showToast(`✅ Earned ${CURRENT_REWARD} $FAL!`, 2500);
           } else {
-            showToast('Ad not completed — no reward');
+            showToast('Ad not completed');
           }
         }catch(e){
-          console.error('Ad playback error', e);
+          console.error('Ad error:', e);
           showToast('Ads not loaded. Try again later.');
         }
         finally{
@@ -356,110 +580,108 @@
         }
       });
 
-      // TonConnect wallet connection
       async function initTonConnect(){
-        try {
-          if (!window.TonConnect) {
-            console.warn('TonConnect SDK not loaded');
-            return null;
-          }
+        try{
+          if (!window.TonConnect) return null;
           const manifestUrl = window.location.origin + '/manifest.json';
           tonconnect = new window.TonConnect.TonConnect({ manifestUrl });
-          // Try to restore existing connection
-          if (tonconnect.wallets && tonconnect.wallets.length) {
-            try { 
-              await tonconnect.restoreConnection(); 
-            }catch(e){
-              console.log('No previous connection to restore');
-            }
+          if (tonconnect.wallets?.length) {
+            try { await tonconnect.restoreConnection(); }catch(e){}
           }
           return tonconnect;
-        } catch (e) {
-          console.error('TonConnect init failed:', e);
+        }catch(e){
+          console.error('TonConnect init:', e);
           return null;
         }
       }
 
-      // Connect/disconnect handler
       connectBtn.addEventListener('click', async ()=>{
         try{
           if (!tonconnect) {
             tonconnect = await initTonConnect();
           }
-          if (!tonconnect) { 
-            showToast('TonConnect SDK not available'); 
-            return; 
+          if (!tonconnect) {
+            showToast('TonConnect SDK not available');
+            return;
           }
 
-          if (!state.connected){
-            // Request connection
-            try {
-              const connectedWallet = await tonconnect.connect();
-              if (connectedWallet) {
-                state.connected = true;
-                state.address = connectedWallet.account?.address || 'connected';
-                state.tonBalance = 0; // Would fetch from TON API in production
-                showToast('Wallet connected (TonConnect)');
-              }
-            } catch (e) {
-              console.error('Connection error:', e);
-              showToast('Wallet connection cancelled');
+          try {
+            const connectedWallet = await tonconnect.connect();
+            if (connectedWallet) {
+              state.connected = true;
+              state.address = connectedWallet.account?.address || 'connected';
+              saveState();
+              render();
+              showToast('Wallet connected ✅');
             }
-          } else {
-            try {
-              await tonconnect.disconnect();
-            } catch (e) {
-              console.error('Disconnect error:', e);
-            }
-            state.connected = false;
-            state.address = null;
-            state.tonBalance = 0;
-            showToast('Wallet disconnected');
+          }catch(e){
+            console.error('Connect error:', e);
+            showToast('Connection cancelled');
           }
-          render();
         }catch(e){
-          console.error('TonConnect error', e);
-          showToast('Wallet connect failed');
+          console.error('TonConnect error:', e);
+          showToast('Connection failed');
         }
       });
 
-      // Withdraw handler
+      disconnectBtn.addEventListener('click', async ()=>{
+        try{
+          if (tonconnect) {
+            await tonconnect.disconnect();
+          }
+          state.connected = false;
+          state.address = null;
+          saveState();
+          render();
+          showToast('Wallet disconnected');
+        }catch(e){
+          console.error('Disconnect error:', e);
+        }
+      });
+
       withdrawBtn.addEventListener('click', async ()=>{
         const amount = Number(amountInput.value || 0);
-        if (!state.connected){ showToast('Connect wallet first.'); return; }
-        if (!amount || amount <= 0){ showToast('Enter a valid amount.'); return; }
-        if (amount < MIN_WITHDRAW){ showToast(`Minimum withdrawal is ${MIN_WITHDRAW} $FAL.`); return; }
-        if (amount > state.falBalance){ showToast('Insufficient $FAL balance.'); return; }
+        if (!state.connected) {
+          showToast('Connect wallet first');
+          return;
+        }
+        if (!amount || amount <= 0) {
+          showToast('Enter valid amount');
+          return;
+        }
+        if (amount < MIN_WITHDRAW) {
+          showToast(`Minimum ${MIN_WITHDRAW} $FAL`);
+          return;
+        }
+        if (amount > state.falBalance) {
+          showToast('Insufficient balance');
+          return;
+        }
 
-        withdrawBtn.disabled = true; withdrawBtn.textContent = 'withdrawing...';
+        withdrawBtn.disabled = true;
+        withdrawBtn.textContent = 'Processing...';
         try{
-          // Simulate server withdrawal
-          await new Promise(r => setTimeout(r, 1200));
+          await new Promise(r => setTimeout(r, 1500));
           state.falBalance = Math.max(0, state.falBalance - amount);
           saveState();
-          showToast(`Withdrawn ${amount.toLocaleString()} $FAL. Fee ${WITHDRAW_FEE_TON} TON must be paid.`);
+          showToast(`✅ Withdrawn ${amount} $FAL`);
           amountInput.value = '';
           render();
-        }catch(e){ console.error(e); showToast('Withdrawal failed'); }
-        finally{ withdrawBtn.disabled = false; withdrawBtn.textContent = 'Withdraw'; }
+        }catch(e){
+          console.error('Withdrawal error:', e);
+          showToast('Withdrawal failed');
+        }
+        finally{
+          withdrawBtn.disabled = false;
+          withdrawBtn.textContent = 'Withdraw';
+        }
       });
 
       maxBtn.addEventListener('click', ()=>{ amountInput.value = state.falBalance; });
 
-      copyAddr.addEventListener('click', async ()=>{
-        try{ await navigator.clipboard.writeText(TOKEN_ADDR); showToast('Contract address copied.'); }
-        catch(e){ showToast('Copy failed — select and copy manually.'); }
-      });
-
-      showInfo.addEventListener('click', ()=>{
-        alert('Token: $FAL\nContract: ' + TOKEN_ADDR + '\nMin withdraw: ' + MIN_WITHDRAW + ' $FAL\nFee: ' + WITHDRAW_FEE_TON + ' TON');
-      });
-
-      fetchPrice.addEventListener('click', async ()=>{ showToast('Price fetch placeholder — implement API call.'); });
-
-      // Initialize app
+      // Initialize
       loadState();
-      initTonConnect().catch((e) => console.error('TonConnect init error:', e));
+      initTonConnect().catch(()=>{});
       render();
 
     })();
