@@ -309,7 +309,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- TonConnect SDK -->
   <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
-  <!-- AdsGram SDK -->
+  <!-- AdsGram SDK - https://docs.adsgram.ai/publisher/reward-interstitial-integration -->
   <script src="https://ds.adsgram.ai/adsgram.js"></script>
 </head>
 <body>
@@ -418,7 +418,7 @@
       const MIN_WITHDRAW = 1000;
       const WITHDRAW_FEE_TON = 0.1;
       const TOKEN_ADDR = 'EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds';
-      const ADSGRAM_BLOCK_ID = 38011;
+      const ADSGRAM_BLOCK_ID = 38011; // Your AdsGram block ID
       const CLAIM_COOLDOWN_MS = 15 * 60 * 1000;
 
       // UI elements
@@ -514,17 +514,26 @@
         setTimeout(()=> toast.style.display = 'none', ms);
       }
 
+      // AdsGram Integration - Following https://docs.adsgram.ai/publisher/reward-interstitial-integration
       async function playAdsGramRewarded(){
-        if (window.AdsgRam && typeof window.AdsgRam.show === 'function'){
-          return new Promise((resolve) => {
+        return new Promise((resolve) => {
+          // Check if AdsGram SDK is loaded
+          if (typeof window.AdsgRam === 'undefined') {
+            console.error('AdsGram SDK not loaded');
+            resolve(false);
+            return;
+          }
+
+          try {
+            // Show rewarded ad using AdsGram SDK
             window.AdsgRam.show({
               blockId: ADSGRAM_BLOCK_ID,
-              onReward: () => {
-                console.log('Ad rewarded');
+              onReward: (reward) => {
+                console.log('Ad rewarded:', reward);
                 resolve(true);
               },
               onClose: () => {
-                console.log('Ad closed');
+                console.log('Ad closed without completion');
                 resolve(false);
               },
               onError: (error) => {
@@ -532,21 +541,11 @@
                 resolve(false);
               }
             });
-          });
-        }
-
-        if (window.ADSGRAM && typeof window.ADSGRAM.showRewarded === 'function'){
-          return new Promise((resolve) => {
-            window.ADSGRAM.showRewarded({
-              blockId: ADSGRAM_BLOCK_ID,
-              onComplete: () => resolve(true),
-              onClose: () => resolve(false),
-              onError: () => resolve(false)
-            });
-          });
-        }
-
-        throw new Error('Ads not loaded. Try again later.');
+          } catch (error) {
+            console.error('AdsGram show error:', error);
+            resolve(false);
+          }
+        });
       }
 
       claimBtn.addEventListener('click', async ()=>{
@@ -560,15 +559,15 @@
         claimBtnText.textContent = 'Loading ad...';
 
         try{
-          const watched = await playAdsGramRewarded();
-          if (watched){
+          const rewarded = await playAdsGramRewarded();
+          if (rewarded){
             state.falBalance = Number(state.falBalance) + Number(CURRENT_REWARD);
             state.lastClaimTime = Date.now();
             saveState();
             render();
             showToast(`✅ Earned ${CURRENT_REWARD} $FAL!`, 2500);
           } else {
-            showToast('Ad not completed');
+            showToast('Ads not loaded. Try again later.');
           }
         }catch(e){
           console.error('Ad error:', e);
