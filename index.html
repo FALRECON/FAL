@@ -78,14 +78,6 @@
       display:flex; align-items:center; justify-content:center; color:var(--muted); font-weight:600; font-size:13px;
     }
 
-    /* Ad overlay */
-    .ad-overlay{
-      position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); z-index:60; padding:24px;
-    }
-    .ad-box{ width:100%; max-width:720px; background:linear-gradient(180deg, #0e0e0e, #121212); border-radius:12px; padding:18px; text-align:center; }
-    .ad-progress{ height:8px; background:rgba(255,255,255,0.06); border-radius:8px; overflow:hidden; margin-top:12px; }
-    .ad-progress > i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width 0.2s linear; }
-
     .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:28px; background:var(--panel); border-radius:10px; padding:10px 16px; color:#dfe6e9;
       border:1px solid rgba(255,255,255,0.04); box-shadow: 0 6px 20px rgba(0,0,0,0.6); display:none; font-size:14px;
     }
@@ -185,26 +177,12 @@
     </main>
   </div>
 
-  <!-- Ad overlay for fallback simulation -->
-  <div id="adOverlay" class="ad-overlay" role="dialog" aria-hidden="true">
-    <div class="ad-box" role="document">
-      <div style="font-size:16px; color:#e9ecef; font-weight:700">AdsGram — Sponsored Ad</div>
-      <div style="margin-top:8px; color:var(--muted);">Watch the full ad to earn your reward.</div>
-      <div class="ad-progress" aria-hidden="true"><i id="adProgressBar"></i></div>
-      <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
-        <button id="closeAd" class="connect-btn" disabled>Close</button>
-        <div id="adTimer" class="muted-small">0s</div>
-      </div>
-    </div>
-  </div>
-
   <div id="toast" class="toast" role="status" aria-live="polite">You earned 100 $FAL</div>
 
   <script>
     (function(){
       // App state stored in localStorage so balance persists across refresh/close
       const STORAGE_KEY = 'fal_balance_v1';
-      const COOLDOWN_KEY = 'fal_claim_cooldown_v1';
       let state = {
         connected: false,
         address: null,
@@ -236,11 +214,6 @@
       const fetchPrice = document.getElementById('fetchPrice');
       const priceInput = document.getElementById('price');
       const showInfo = document.getElementById('showInfo');
-
-      const adOverlay = document.getElementById('adOverlay');
-      const adProgressBar = document.getElementById('adProgressBar');
-      const adTimer = document.getElementById('adTimer');
-      const closeAd = document.getElementById('closeAd');
 
       // TonConnect instance (for multiple wallet support)
       let tonconnect = null;
@@ -347,40 +320,8 @@
           });
         }
 
-        // If no AdsGram SDK is available, fall back to simulation
-        console.warn('AdsGram SDK not found. Using simulation.');
-        return simulateAdPlay();
-      }
-
-      // Fallback simulation (for testing only)
-      function simulateAdPlay(){
-        adOverlay.style.display = 'flex';
-        adOverlay.setAttribute('aria-hidden', 'false');
-        claimBtn.disabled = true;
-        claimBtn.textContent = 'watching ad...';
-
-        const DURATION = 8;
-        let elapsed = 0;
-        adProgressBar.style.width = '0%';
-        adTimer.textContent = `${DURATION}s`;
-        closeAd.disabled = true;
-
-        return new Promise((resolve)=>{
-          const interval = setInterval(()=>{
-            elapsed++;
-            const pct = Math.min(100, Math.round((elapsed / DURATION) * 100));
-            adProgressBar.style.width = pct + '%';
-            adTimer.textContent = `${Math.max(0, DURATION - elapsed)}s`;
-            if (elapsed >= DURATION){
-              clearInterval(interval);
-              adOverlay.style.display = 'none';
-              adOverlay.setAttribute('aria-hidden', 'true');
-              claimBtn.disabled = false;
-              claimBtn.textContent = 'claim your 100$FAL';
-              resolve(true);
-            }
-          },1000);
-        });
+        // If no AdsGram SDK is available, throw error
+        throw new Error('Ads not loaded. Try again later.');
       }
 
       // Main claim flow with cooldown
@@ -390,6 +331,9 @@
           showToast(`Please wait ${cooldownRemaining}s before claiming again`);
           return;
         }
+
+        claimBtn.disabled = true;
+        claimBtn.textContent = 'loading ad...';
 
         try{
           const watched = await playAdsGramRewarded();
@@ -404,17 +348,12 @@
           }
         }catch(e){
           console.error('Ad playback error', e);
-          showToast('Ad failed — try again');
+          showToast('Ads not loaded. Try again later.');
         }
-      });
-
-      // Ad close button
-      closeAd.addEventListener('click', ()=>{
-        adOverlay.style.display = 'none';
-        adOverlay.setAttribute('aria-hidden', 'true');
-        claimBtn.disabled = false;
-        claimBtn.textContent = 'claim your 100$FAL';
-        showToast('Ad closed — no reward');
+        finally{
+          claimBtn.disabled = false;
+          updateClaimButtonState();
+        }
       });
 
       // TonConnect wallet connection
