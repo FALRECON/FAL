@@ -45,23 +45,29 @@
       justify-content:flex-start;
       padding:12px; 
       padding-top: 8px;
-      padding-bottom: 20px;
+      padding-bottom: 80px;
       gap: 12px;
     }
 
     .tabs {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
       width: 100%;
-      max-width: 540px;
       display: flex;
       gap: 8px;
       background: rgba(255,255,255,0.01);
-      border-radius: 12px;
-      padding: 4px;
-      border: 1px solid rgba(255,255,255,0.03);
+      border-top: 1px solid rgba(255,255,255,0.03);
+      padding: 8px 12px;
+      box-sizing: border-box;
+      justify-content: center;
+      z-index: 999;
     }
 
     .tab-btn {
       flex: 1;
+      max-width: 140px;
       padding: 10px 12px;
       border: 0;
       background: transparent;
@@ -401,7 +407,7 @@
       position:fixed; 
       left:50%; 
       transform:translateX(-50%); 
-      bottom:28px; 
+      bottom:88px; 
       background:var(--panel); 
       border-radius:10px; 
       padding:12px 16px; 
@@ -452,6 +458,7 @@
       .wrap{
         padding: 8px;
         padding-top: 4px;
+        padding-bottom: 80px;
         gap: 10px;
       }
 
@@ -474,13 +481,18 @@
         min-height: 44px;
       }
 
-      .tabs {
-        font-size: 12px;
-      }
-
       .tab-btn {
         font-size: 11px;
         padding: 8px 10px;
+      }
+
+      .tabs {
+        padding: 8px;
+        gap: 4px;
+      }
+
+      .toast{
+        bottom: 88px;
       }
     }
   </style>
@@ -489,18 +501,11 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- TonConnect SDK -->
   <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
-  <!-- AdsGram SDK -->
-  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+  <!-- TADS Widget Script -->
+  <script src="https://w.tads.me/widget.js"></script>
 </head>
 <body>
   <div class="wrap">
-    <!-- Tab Navigation -->
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="earn">💰 Earn</button>
-      <button class="tab-btn" data-tab="referral">🔗 Referral</button>
-      <button class="tab-btn" data-tab="wallet">👛 Wallet</button>
-    </div>
-
     <!-- EARN TAB -->
     <div class="tab-content active" id="earn-tab">
       <div class="card">
@@ -686,6 +691,13 @@
     </div>
   </div>
 
+  <!-- Tab Navigation at Bottom -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="earn">💰 Earn</button>
+    <button class="tab-btn" data-tab="referral">🔗 Referral</button>
+    <button class="tab-btn" data-tab="wallet">👛 Wallet</button>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
@@ -719,8 +731,8 @@
       const MIN_WITHDRAW = 1000;
       const WITHDRAW_FEE_TON = 0.1;
       const TOKEN_ADDR = 'EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds';
-      const ADSGRAM_BLOCK_ID = '38011';
-      const CLAIM_COOLDOWN_MS = 15 * 60 * 1000;
+      const TADS_FULLSCREEN_ID = '10952'; // Fullscreen widget ID
+      const CLAIM_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
       const API_BASE = 'https://api.github.com/repos/FALRECON/FAL';
 
       // UI elements
@@ -763,7 +775,7 @@
       });
 
       let tonconnect = null;
-      let AdController = null;
+      let adController = null;
 
       function generateReferralCode(){
         if (!state.userId) return null;
@@ -893,38 +905,70 @@
         setTimeout(()=> toast.style.display = 'none', ms);
       }
 
-      function initAdsGram(){
+      function initTads(){
         try {
-          if (typeof window.Adsgram !== 'undefined') {
-            AdController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
-            console.log('AdsGram initialized');
+          if (typeof window.tads !== 'undefined') {
+            const adsNotFoundCallback = () => {
+              console.log('No ads found to show');
+              showToast('❌ No ads available. Try again later.');
+            };
+
+            const onClickRewardCallback = (adId) => {
+              console.log('Clicked ad:', adId);
+              // Award the user after successful ad watch
+              awardClaimReward();
+            };
+
+            adController = window.tads.init({
+              widgetId: TADS_FULLSCREEN_ID,
+              type: 'fullscreen',
+              debug: false, // Set to true for development
+              onClickReward: onClickRewardCallback,
+              onAdsNotFound: adsNotFoundCallback
+            });
+            console.log('TADS initialized with widget ID:', TADS_FULLSCREEN_ID);
           }
         } catch (error) {
-          console.error('AdsGram init error:', error);
+          console.error('TADS init error:', error);
         }
       }
 
-      async function playAdsGramRewarded(){
+      async function playTadsAd(){
         return new Promise((resolve) => {
-          if (!AdController) {
+          if (!adController) {
             showToast('Ads not loaded. Try again.');
             resolve(false);
             return;
           }
 
-          AdController.show()
-            .then((result) => {
-              if (result?.done) {
-                resolve(true);
-              } else {
-                resolve(false);
-              }
+          adController
+            .loadAd()
+            .then(() => adController.showAd())
+            .then(() => {
+              resolve(true);
             })
-            .catch(() => {
+            .catch((err) => {
+              console.log('TADS error:', err);
               showToast('Ads not loaded. Try again.');
               resolve(false);
             });
         });
+      }
+
+      function awardClaimReward(){
+        state.adBalance = Number(state.adBalance) + Number(CURRENT_REWARD);
+        
+        // Apply 10% commission to referrer if exists
+        if (state.referredBy) {
+          const commissionAmount = Math.floor(CURRENT_REWARD * REFERRAL_COMMISSION);
+          console.log(`Commission: ${commissionAmount} $FAL to ${state.referredBy}`);
+          // TODO: Send to backend to credit referrer
+        }
+
+        state.lastClaimTime = Date.now();
+        saveState();
+        render();
+        showToast(`✅ Earned ${CURRENT_REWARD} $FAL!`, 2500);
       }
 
       claimBtn.addEventListener('click', async ()=>{
@@ -938,23 +982,11 @@
         claimBtnText.textContent = 'Loading ad...';
 
         try{
-          const rewarded = await playAdsGramRewarded();
+          const rewarded = await playTadsAd();
           if (rewarded){
-            state.adBalance = Number(state.adBalance) + Number(CURRENT_REWARD);
-            
-            // Apply 10% to referrer if exists
-            if (state.referredBy) {
-              const commissionAmount = Math.floor(CURRENT_REWARD * REFERRAL_COMMISSION);
-              // TODO: Send to backend to credit referrer
-              console.log(`Commission: ${commissionAmount} $FAL to ${state.referredBy}`);
-            }
-
-            state.lastClaimTime = Date.now();
-            saveState();
-            render();
-            showToast(`✅ Earned ${CURRENT_REWARD} $FAL!`, 2500);
+            // Reward is handled in the callback
           } else {
-            showToast('Ads not loaded. Try again.');
+            showToast('Ad cancelled. Try again.');
           }
         }catch(e){
           console.error('Ad error:', e);
@@ -998,40 +1030,30 @@
           const manifestUrl = window.location.origin + '/manifest.json';
           tonconnect = new window.TonConnect.TonConnect({ manifestUrl });
           if (tonconnect.wallets?.length) {
-            try { await tonconnect.restoreConnection(); }catch(e){}
+            console.log('TonConnect ready');
           }
-          return tonconnect;
         }catch(e){
-          console.error('TonConnect init:', e);
-          return null;
+          console.error('TonConnect error:', e);
         }
       }
 
       connectBtn.addEventListener('click', async ()=>{
         try{
           if (!tonconnect) {
-            tonconnect = await initTonConnect();
-          }
-          if (!tonconnect) {
-            showToast('TonConnect SDK not available');
+            showToast('Wallet not available');
             return;
           }
-
-          try {
-            const connectedWallet = await tonconnect.connect();
-            if (connectedWallet) {
-              state.connected = true;
-              state.address = connectedWallet.account?.address || 'connected';
-              saveState();
-              render();
-              showToast('Wallet connected ✅');
-            }
-          }catch(e){
-            console.error('Connect error:', e);
-            showToast('Connection cancelled');
+          const walletConnectionSource = tonconnect.wallets[0];
+          const connection = await tonconnect.connect(walletConnectionSource);
+          if (connection) {
+            state.connected = true;
+            state.address = connection.address;
+            saveState();
+            render();
+            showToast('✅ Wallet connected!', 2000);
           }
         }catch(e){
-          console.error('TonConnect error:', e);
+          console.error('Connect error:', e);
           showToast('Connection failed');
         }
       });
@@ -1040,70 +1062,72 @@
         try{
           if (tonconnect) {
             await tonconnect.disconnect();
+            state.connected = false;
+            state.address = null;
+            saveState();
+            render();
+            showToast('✅ Wallet disconnected', 2000);
           }
-          state.connected = false;
-          state.address = null;
-          saveState();
-          render();
-          showToast('Wallet disconnected');
         }catch(e){
           console.error('Disconnect error:', e);
         }
       });
 
+      maxBtn.addEventListener('click', ()=>{
+        amountInput.value = getTotalBalance();
+      });
+
       withdrawBtn.addEventListener('click', async ()=>{
-        const amount = Number(amountInput.value || 0);
-        if (!state.connected) {
-          showToast('Connect wallet first');
-          return;
-        }
-        if (!amount || amount <= 0) {
-          showToast('Enter valid amount');
-          return;
-        }
-        if (amount < MIN_WITHDRAW) {
-          showToast(`Minimum ${MIN_WITHDRAW} $FAL`);
+        const amount = Number(amountInput.value);
+        if (!amount || amount < MIN_WITHDRAW) {
+          showToast(`Minimum ${MIN_WITHDRAW} $FAL required`);
           return;
         }
         if (amount > getTotalBalance()) {
           showToast('Insufficient balance');
           return;
         }
+        if (!state.connected || !state.address) {
+          showToast('Wallet not connected');
+          return;
+        }
 
         withdrawBtn.disabled = true;
-        withdrawBtn.textContent = 'Processing...';
-        try{
-          await new Promise(r => setTimeout(r, 1500));
-          const toWithdraw = amount;
-          if (state.adBalance >= toWithdraw) {
-            state.adBalance -= toWithdraw;
-          } else {
-            const fromAds = state.adBalance;
-            state.adBalance = 0;
-            state.refBalance -= (toWithdraw - fromAds);
-          }
+        showToast('Processing...', 5000);
+
+        // TODO: Implement actual withdrawal logic
+        setTimeout(()=>{
+          state.adBalance = Math.max(0, state.adBalance - amount);
           saveState();
-          showToast(`✅ Withdrawn ${amount} $FAL`);
-          amountInput.value = '';
           render();
-        }catch(e){
-          console.error('Withdrawal error:', e);
-          showToast('Withdrawal failed');
-        }
-        finally{
+          amountInput.value = '';
           withdrawBtn.disabled = false;
-          withdrawBtn.textContent = 'Withdraw';
-        }
+          showToast('✅ Withdrawal initiated!', 2000);
+        }, 2000);
       });
 
-      maxBtn.addEventListener('click', ()=>{ amountInput.value = getTotalBalance(); });
+      // Fetch top referrers (mock data for now)
+      async function loadTopReferrers(){
+        try{
+          topReferrers.innerHTML = `
+            <div style="font-size: 12px; color: var(--muted); padding: 12px;">
+              <div style="margin-bottom: 8px;">🥇 #1: User123456 - 5,240 $FAL</div>
+              <div style="margin-bottom: 8px;">🥈 #2: CommunityLead - 3,850 $FAL</div>
+              <div>🥉 #3: TopFan - 2,120 $FAL</div>
+            </div>
+          `;
+        }catch(e){
+          console.error('Load referrers error:', e);
+          topReferrers.innerHTML = 'Failed to load leaderboard';
+        }
+      }
 
-      // Load and initialize
+      // Initialize
       loadState();
-      initAdsGram();
-      initTonConnect().catch(()=>{});
+      initTads();
+      initTonConnect();
+      loadTopReferrers();
       render();
-
     })();
   </script>
 </body>
