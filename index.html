@@ -1,3 +1,273 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAL Recon - Military Grade Faucet</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://ad.gigapub.tech/script?id=7837"></script>
+    <script src="https://cdn.jsdelivr.net/gh/ton-connect/sdk@3/dist/index.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <span class="logo-icon">⚔️</span>
+                <h1>FAL RECON</h1>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse"></span>
+                <span class="status-text">ACTIVE</span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="nav-menu">
+            <button class="nav-btn active" data-page="dashboard">DASHBOARD</button>
+            <button class="nav-btn" data-page="earn">EARN</button>
+            <button class="nav-btn" data-page="withdraw">WITHDRAW</button>
+        </nav>
+
+        <!-- Dashboard Page -->
+        <div class="page active" id="dashboard">
+            <div class="dashboard-container">
+                <!-- Balance Display -->
+                <div class="balance-card">
+                    <div class="card-header">
+                        <h2>CURRENT BALANCE</h2>
+                        <span class="card-icon">💰</span>
+                    </div>
+                    <div class="balance-display">
+                        <span class="balance-amount" id="totalBalance">0</span>
+                        <span class="balance-currency">$FAL</span>
+                    </div>
+                    <div class="balance-info">
+                        <p>Total Claimed: <span id="totalClaimed">0</span> $FAL</p>
+                    </div>
+                </div>
+
+                <!-- Faucet Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">REWARD PER CLAIM</div>
+                        <div class="stat-value">100</div>
+                        <div class="stat-currency">$FAL</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">CLAIM INTERVAL</div>
+                        <div class="stat-value">30</div>
+                        <div class="stat-currency">SECONDS</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">NEXT CLAIM</div>
+                        <div class="stat-value" id="nextClaimTimer">00:00</div>
+                        <div class="stat-currency">COUNTDOWN</div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="action-btn primary-btn" id="claimBtn" onclick="handleClaim()">
+                        <span class="btn-icon">🎯</span>
+                        <span class="btn-text">CLAIM REWARD</span>
+                        <span class="btn-shine"></span>
+                    </button>
+                </div>
+
+                <!-- Recent Claims -->
+                <div class="claims-history">
+                    <div class="history-header">
+                        <h3>RECENT ACTIVITY</h3>
+                        <button class="clear-btn" onclick="clearHistory()">CLEAR</button>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <div class="history-empty">No claims yet. Start earning!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Earn Page -->
+        <div class="page" id="earn">
+            <div class="earn-container">
+                <div class="page-header">
+                    <h2>EARN $FAL</h2>
+                    <p class="subtitle">Complete tasks and claim your rewards</p>
+                </div>
+
+                <!-- Token Info -->
+                <div class="info-card token-info">
+                    <div class="info-title">TOKEN INFORMATION</div>
+                    <div class="info-content">
+                        <div class="info-row">
+                            <span class="info-label">TOKEN NAME:</span>
+                            <span class="info-value">$FAL</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">CONTRACT:</span>
+                            <span class="info-value contract-address">EQC3WByWfdoVF8JLJi7QUdnlZIWodjva5kNrReWcdytMbOds</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">DECIMALS:</span>
+                            <span class="info-value">9</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">TOTAL SUPPLY:</span>
+                            <span class="info-value">1,000,000,000 $FAL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="instructions-card">
+                    <div class="instructions-title">HOW TO EARN</div>
+                    <ol class="instructions-list">
+                        <li>
+                            <span class="step-number">1</span>
+                            <span class="step-text">Click the CLAIM REWARD button</span>
+                        </li>
+                        <li>
+                            <span class="step-number">2</span>
+                            <span class="step-text">Watch the advertisement to completion</span>
+                        </li>
+                        <li>
+                            <span class="step-number">3</span>
+                            <span class="step-text">Receive 100 $FAL instantly</span>
+                        </li>
+                        <li>
+                            <span class="step-number">4</span>
+                            <span class="step-text">Wait 30 seconds before next claim</span>
+                        </li>
+                        <li>
+                            <span class="step-number">5</span>
+                            <span class="step-text">Withdraw your balance anytime</span>
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- Features -->
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <div class="feature-title">Secure</div>
+                        <div class="feature-desc">Your balance is saved locally</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-title">Instant</div>
+                        <div class="feature-desc">Rewards credited immediately</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">♾️</div>
+                        <div class="feature-title">Unlimited</div>
+                        <div class="feature-desc">Claim as many times as you want</div>
+                    </div>
+                </div>
+
+                <!-- Main Claim Button -->
+                <button class="action-btn primary-btn large-btn" onclick="goToDashboard()">
+                    <span class="btn-icon">🎯</span>
+                    <span class="btn-text">GO TO CLAIM</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Withdraw Page -->
+        <div class="page" id="withdraw">
+            <div class="withdraw-container">
+                <div class="page-header">
+                    <h2>WITHDRAW FUNDS</h2>
+                    <p class="subtitle">Transfer your $FAL to your wallet</p>
+                </div>
+
+                <!-- Current Balance -->
+                <div class="withdraw-balance-card">
+                    <div class="balance-label">AVAILABLE BALANCE</div>
+                    <div class="balance-display large">
+                        <span id="withdrawBalance">0</span>
+                        <span class="balance-currency">$FAL</span>
+                    </div>
+                </div>
+
+                <!-- Withdrawal Instructions -->
+                <div class="info-card withdraw-info">
+                    <div class="info-title">WITHDRAWAL INSTRUCTIONS</div>
+                    <div class="info-content">
+                        <p class="instruction-text">
+                            Connect your TON wallet to withdraw your $FAL tokens. Your balance will be transferred securely to your wallet address.
+                        </p>
+                        <div class="warning-box">
+                            <span class="warning-icon">⚠️</span>
+                            <p>Ensure you have sufficient balance before attempting withdrawal</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wallet Connection -->
+                <div class="wallet-section">
+                    <div class="wallet-title">CONNECT WALLET</div>
+                    <div class="wallet-address-display" id="walletDisplay">
+                        <p class="wallet-status">Not connected</p>
+                    </div>
+                    <button class="action-btn primary-btn" id="connectWalletBtn" onclick="connectWallet()">
+                        <span class="btn-icon">🔗</span>
+                        <span class="btn-text">CONNECT TON WALLET</span>
+                    </button>
+                </div>
+
+                <!-- Withdrawal Form -->
+                <div class="withdraw-form" id="withdrawForm" style="display: none;">
+                    <div class="form-group">
+                        <label for="withdrawAmount">WITHDRAWAL AMOUNT</label>
+                        <input type="number" id="withdrawAmount" placeholder="Enter amount" min="0">
+                        <div class="form-hint">Available: <span id="availableAmount">0</span> $FAL</div>
+                    </div>
+
+                    <button class="action-btn primary-btn" onclick="processWithdrawal()">
+                        <span class="btn-icon">💸</span>
+                        <span class="btn-text">WITHDRAW NOW</span>
+                    </button>
+                </div>
+
+                <!-- Fee Information -->
+                <div class="info-card fee-info">
+                    <div class="info-title">FEE STRUCTURE</div>
+                    <div class="info-content">
+                        <div class="info-row">
+                            <span class="info-label">NETWORK FEE:</span>
+                            <span class="info-value">Minimal (TON Network)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">PROCESSING:</span>
+                            <span class="info-value">Instant</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ad Modal (Hidden by default) -->
+    <div class="ad-modal" id="adModal">
+        <div class="ad-content">
+            <div class="ad-header">
+                <h3>WATCH AD TO CLAIM</h3>
+                <button class="ad-close" onclick="closeAdModal()">✕</button>
+            </div>
+            <div class="ad-body">
+                <p>Watch this advertisement to receive your reward</p>
+                <div class="ad-loader" id="adLoader">
+                    <div class="spinner"></div>
+                    <p>Loading advertisement...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
